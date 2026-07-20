@@ -3,8 +3,11 @@
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
+from typing import cast
 
 import yaml
+from jsonschema import Draft202012Validator
+from jsonschema.exceptions import ValidationError
 
 
 _DATA_TYPE_COUNTS: dict[str, int | None] = {
@@ -15,6 +18,74 @@ _DATA_TYPE_COUNTS: dict[str, int | None] = {
     "float32": 2,
     "string": None,
 }
+_NON_EMPTY_STRING_SCHEMA = {"type": "string", "pattern": r"\S"}
+_REGISTER_SCHEMA = {
+    "type": "object",
+    "required": ["key", "name", "address", "data_type"],
+    "properties": {
+        "key": _NON_EMPTY_STRING_SCHEMA,
+        "name": _NON_EMPTY_STRING_SCHEMA,
+        "address": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 65535,
+        },
+        "data_type": {
+            "type": "string",
+            "enum": list(_DATA_TYPE_COUNTS),
+        },
+        "count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 125,
+        },
+    },
+    "allOf": [
+        {
+            "if": {
+                "properties": {"data_type": {"const": data_type}},
+                "required": ["data_type"],
+            },
+            "then": {
+                "properties": {
+                    "count": {"const": required_count},
+                    **(
+                        {
+                            "word_order": {
+                                "type": "string",
+                                "enum": ["big", "little"],
+                            }
+                        }
+                        if required_count == 2
+                        else {}
+                    ),
+                },
+                **(
+                    {"required": ["count", "word_order"]}
+                    if required_count == 2
+                    else {}
+                ),
+            },
+        }
+        for data_type, required_count in _DATA_TYPE_COUNTS.items()
+        if required_count is not None
+    ],
+}
+_PROFILE_VALIDATOR = Draft202012Validator(
+    {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "type": "object",
+        "required": ["manufacturer", "model", "registers"],
+        "properties": {
+            "manufacturer": _NON_EMPTY_STRING_SCHEMA,
+            "model": _NON_EMPTY_STRING_SCHEMA,
+            "registers": {
+                "type": "array",
+                "items": _REGISTER_SCHEMA,
+            },
+        },
+    }
+)
 
 
 class ProfileError(ValueError):
@@ -46,96 +117,28 @@ class DeviceProfile:
     registers: tuple[RegisterDefinition, ...]
 
 
-def _require_register_mapping(index: int, register_data: object) -> Mapping:
-    """Return one register entry as a mapping."""
-    if not isinstance(register_data, Mapping):
-        raise ProfileError(f"register {index} must be a mapping")
-    return register_data
+def _schema_error(scope: str, error: ValidationError) -> ProfileError:
+    """Add profile context to a JSON Schema validation error."""
+    path = [str(part) for part in error.path]
+    location = f" {'.'.join(path)}" if path else ""
+    return ProfileError(f"{scope}{location}: {error.message}")
 
 
-def _require_register_string(
-    index: int,
-    register_data: Mapping,
-    field: str,
-) -> str:
-    """Return a required, non-empty register string field."""
-    if field not in register_data:
-        raise ProfileError(f"register {index} missing required field: {field}")
-    value = register_data[field]
-    if not isinstance(value, str) or not value.strip():
-        raise ProfileError(f"register {index} {field} must be a non-empty string")
-    return value
-
-
-def _validate_count(index: int, register_data: Mapping) -> int:
-    """Return a valid Modbus register count."""
-    count = register_data.get("count", 1)
-    if type(count) is not int or not 1 <= count <= 125:
-        raise ProfileError(
-            f"register {index} count must be an integer between 1 and 125"
-        )
-    return count
-
-
-def _validate_address(index: int, register_data: Mapping, count: int) -> None:
-    """Validate a register address and its complete range."""
-    if "address" not in register_data:
-        raise ProfileError(f"register {index} missing required field: address")
-    address = register_data.get("address")
-    if type(address) is not int or not 0 <= address <= 65535:
-        raise ProfileError(
-            f"register {index} address must be an integer between 0 and 65535"
-        )
+def _validate_register_range(index: int, register_data: Mapping) -> None:
+    """Validate a register range that JSON Schema cannot express."""
+    address = cast(int, register_data["address"])
+    count = cast(int, register_data.get("count", 1))
     if address + count - 1 > 65535:
         raise ProfileError(f"register {index} range exceeds address 65535")
 
 
-def _validate_data_type(index: int, register_data: Mapping, count: int) -> None:
-    """Validate a data type and its required register count."""
-    if "data_type" not in register_data:
-        raise ProfileError(f"register {index} missing required field: data_type")
-    data_type = register_data.get("data_type")
-    if not isinstance(data_type, str):
-        raise ProfileError(f"register {index} data_type must be a string")
-    if data_type not in _DATA_TYPE_COUNTS:
-        raise ProfileError(f"register {index} has unsupported data_type: {data_type}")
-
-    required_count = _DATA_TYPE_COUNTS[data_type]
-    if required_count is not None and count != required_count:
-        raise ProfileError(
-            f"register {index} data_type {data_type} requires count {required_count}"
-        )
-
-
-def _validate_word_order(index: int, register_data: Mapping) -> None:
-    """Require word order for multi-register numeric values."""
-    data_type = register_data.get("data_type")
-    if data_type in {"uint32", "int32", "float32"}:
-        if "word_order" not in register_data:
-            raise ProfileError(f"register {index} data_type {data_type} requires word_order")
-        word_order = register_data.get("word_order")
-        if not isinstance(word_order, str):
-            raise ProfileError(f"register {index} word_order must be a string")
-        if word_order not in {"big", "little"}:
-            raise ProfileError(
-                f"register {index} has unsupported word_order: {word_order}"
-            )
-
-
-def _load_register(index: int, register_data: object) -> RegisterDefinition:
+def _load_register(index: int, register_data: Mapping) -> RegisterDefinition:
     """Load and validate one register definition."""
-    register_mapping = _require_register_mapping(index, register_data)
-    _require_register_string(index, register_mapping, "key")
-    _require_register_string(index, register_mapping, "name")
-    count = _validate_count(index, register_mapping)
-    _validate_address(index, register_mapping, count)
-    _validate_data_type(index, register_mapping, count)
-    _validate_word_order(index, register_mapping)
-
-    return RegisterDefinition(**register_mapping)
+    _validate_register_range(index, register_data)
+    return RegisterDefinition(**register_data)
 
 
-def _load_registers(registers_data: list[object]) -> tuple[RegisterDefinition, ...]:
+def _load_registers(registers_data: list[Mapping]) -> tuple[RegisterDefinition, ...]:
     """Load all register definitions in profile order."""
     return tuple(
         _load_register(index, register_data)
@@ -143,39 +146,18 @@ def _load_registers(registers_data: list[object]) -> tuple[RegisterDefinition, .
     )
 
 
-def _require_non_empty_string(profile_data: Mapping, field: str) -> str:
-    """Return a required, non-empty profile string field."""
-    if field not in profile_data:
-        raise ProfileError(f"Missing required field: {field}")
-    value = profile_data[field]
-    if not isinstance(value, str) or not value.strip():
-        raise ProfileError(f"{field} must be a non-empty string")
-    return value
-
-
-def _require_list(profile_data: Mapping, field: str) -> list[object]:
-    """Return a required profile list field."""
-    if field not in profile_data:
-        raise ProfileError(f"Missing required field: {field}")
-    value = profile_data[field]
-    if not isinstance(value, list):
-        raise ProfileError(f"{field} must be a list")
-    return value
-
-
 def build_device_profile(profile_data: object) -> DeviceProfile:
     """Validate parsed profile data and build a device profile."""
-    if not isinstance(profile_data, Mapping):
-        raise ProfileError("Profile must be a YAML mapping")
-
-    manufacturer = _require_non_empty_string(profile_data, "manufacturer")
-    model = _require_non_empty_string(profile_data, "model")
-    registers = _require_list(profile_data, "registers")
+    try:
+        _PROFILE_VALIDATOR.validate(profile_data)
+    except ValidationError as error:
+        raise _schema_error("profile", error) from error
+    profile_mapping = cast(Mapping, profile_data)
 
     return DeviceProfile(
-        manufacturer=manufacturer,
-        model=model,
-        registers=_load_registers(registers),
+        manufacturer=profile_mapping["manufacturer"],
+        model=profile_mapping["model"],
+        registers=_load_registers(cast(list[Mapping], profile_mapping["registers"])),
     )
 
 

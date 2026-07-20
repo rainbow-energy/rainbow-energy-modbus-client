@@ -75,58 +75,73 @@ def load_valid_profile(*, profile_overrides=None, register_overrides=None):
 
 def test_build_device_profile_rejects_non_mapping():
     """Reject parsed profile data that is not a mapping."""
-    with pytest.raises(ProfileError, match="Profile must be a YAML mapping"):
+    with pytest.raises(ProfileError, match="profile: .* is not of type 'object'"):
         build_device_profile(None)
 
 
 def test_load_profile_rejects_missing_manufacturer():
     """Reject profiles without a manufacturer."""
-    with pytest.raises(ProfileError, match="Missing required field: manufacturer"):
+    with pytest.raises(ProfileError, match="profile: .*manufacturer.*required property"):
         load_valid_profile(profile_overrides={"manufacturer": _DELETE})
 
 
 @pytest.mark.parametrize("manufacturer", [None, "", "   "])
 def test_load_profile_rejects_invalid_manufacturer(manufacturer):
     """Reject a manufacturer that is null or blank."""
-    with pytest.raises(ProfileError, match="manufacturer must be a non-empty string"):
+    with pytest.raises(
+        ProfileError,
+        match="profile manufacturer: .*(not of type 'string'|does not match)",
+    ):
         load_valid_profile(profile_overrides={"manufacturer": manufacturer})
 
 
 def test_load_profile_rejects_missing_model():
     """Reject profiles without a model."""
-    with pytest.raises(ProfileError, match="Missing required field: model"):
+    with pytest.raises(ProfileError, match="profile: .*model.*required property"):
         load_valid_profile(profile_overrides={"model": _DELETE})
 
 
 @pytest.mark.parametrize("model", [None, "", "   "])
 def test_load_profile_rejects_invalid_model(model):
     """Reject a model that is null or blank."""
-    with pytest.raises(ProfileError, match="model must be a non-empty string"):
+    with pytest.raises(
+        ProfileError,
+        match="profile model: .*(not of type 'string'|does not match)",
+    ):
         load_valid_profile(profile_overrides={"model": model})
 
 
 def test_load_profile_rejects_missing_registers():
     """Reject profiles without register definitions."""
-    with pytest.raises(ProfileError, match="Missing required field: registers"):
+    with pytest.raises(ProfileError, match="profile: .*registers.*required property"):
         load_valid_profile(profile_overrides={"registers": _DELETE})
 
 
 @pytest.mark.parametrize("registers", [None, ""])
 def test_load_profile_rejects_null_or_empty_string_registers(registers):
     """Reject null or empty-string register collections."""
-    with pytest.raises(ProfileError, match="registers must be a list"):
+    with pytest.raises(
+        ProfileError,
+        match="profile registers: .* is not of type 'array'",
+    ):
         load_valid_profile(profile_overrides={"registers": registers})
 
 
 def test_load_profile_rejects_non_list_registers():
     """Reject a register collection that is not a list."""
-    with pytest.raises(ProfileError, match="registers must be a list"):
+    with pytest.raises(
+        ProfileError,
+        match="profile registers: .* is not of type 'array'",
+    ):
         load_valid_profile(profile_overrides={"registers": {}})
 
 
 def test_load_profile_rejects_non_mapping_register():
     """Reject a register entry that is not a mapping."""
-    with pytest.raises(ProfileError, match="register 0 must be a mapping"):
+    with pytest.raises(
+        ProfileError,
+        match="profile registers.0: .* is not of type 'object'",
+    ):
         load_valid_profile(profile_overrides={"registers": ["battery_soc"]})
 
 
@@ -134,7 +149,7 @@ def test_build_device_profile_rejects_missing_register_key():
     """Reject a register definition without a key."""
     with pytest.raises(
         ProfileError,
-        match="register 0 missing required field: key",
+        match="profile registers.0: .*key.*required property",
     ):
         load_valid_profile(register_overrides={"key": _DELETE})
 
@@ -144,24 +159,24 @@ def test_build_device_profile_rejects_invalid_register_key(key):
     """Reject a register definition with a null, non-string, or blank key."""
     with pytest.raises(
         ProfileError,
-        match="register 0 key must be a non-empty string",
+        match="profile registers.0.key: .*(not of type 'string'|does not match)",
     ):
         load_valid_profile(register_overrides={"key": key})
 
 
 @pytest.mark.parametrize(
-    ("name", "message"),
-    [
-        (_DELETE, "register 0 missing required field: name"),
-        (None, "register 0 name must be a non-empty string"),
-        (42, "register 0 name must be a non-empty string"),
-        ("", "register 0 name must be a non-empty string"),
-        ("   ", "register 0 name must be a non-empty string"),
-    ],
+    "name",
+    [_DELETE, None, 42, "", "   "],
 )
-def test_build_device_profile_rejects_invalid_register_name(name, message):
+def test_build_device_profile_rejects_invalid_register_name(name):
     """Reject a register definition with a missing or invalid name."""
-    with pytest.raises(ProfileError, match=message):
+    with pytest.raises(
+        ProfileError,
+        match=(
+            "profile registers.0.*name.*"
+            "(required property|not of type 'string'|does not match)"
+        ),
+    ):
         load_valid_profile(register_overrides={"name": name})
 
 
@@ -196,7 +211,7 @@ def test_load_profile_requires_word_order_for_uint32():
     """Require word order for unsigned 32-bit values."""
     with pytest.raises(
         ProfileError,
-        match="register 0 data_type uint32 requires word_order",
+        match="profile registers.0: .*word_order.*required property",
     ):
         load_valid_profile(
             register_overrides={"data_type": "uint32", "count": 2}
@@ -207,7 +222,7 @@ def test_load_profile_requires_word_order_for_int32():
     """Require word order for signed 32-bit values."""
     with pytest.raises(
         ProfileError,
-        match="register 0 data_type int32 requires word_order",
+        match="profile registers.0: .*word_order.*required property",
     ):
         load_valid_profile(
             register_overrides={"data_type": "int32", "count": 2}
@@ -218,7 +233,7 @@ def test_load_profile_requires_word_order_for_float32():
     """Require word order for 32-bit floating-point values."""
     with pytest.raises(
         ProfileError,
-        match="register 0 data_type float32 requires word_order",
+        match="profile registers.0: .*word_order.*required property",
     ):
         load_valid_profile(
             register_overrides={"data_type": "float32", "count": 2}
@@ -229,7 +244,7 @@ def test_load_profile_rejects_non_string_word_order():
     """Reject a word order that is not a string."""
     with pytest.raises(
         ProfileError,
-        match="register 0 word_order must be a string",
+        match="profile registers.0.word_order: .*not of type 'string'",
     ):
         load_valid_profile(
             register_overrides={
@@ -244,7 +259,7 @@ def test_load_profile_rejects_unsupported_word_order():
     """Reject an unsupported word-order value."""
     with pytest.raises(
         ProfileError,
-        match="register 0 has unsupported word_order: middle",
+        match="profile registers.0.word_order: .*is not one of",
     ):
         load_valid_profile(
             register_overrides={
@@ -259,7 +274,7 @@ def test_load_profile_rejects_zero_register_count():
     """Reject a register definition with a zero count."""
     with pytest.raises(
         ProfileError,
-        match="register 0 count must be an integer between 1 and 125",
+        match="profile registers.0.count: .*less than the minimum",
     ):
         load_valid_profile(register_overrides={"count": 0})
 
@@ -268,7 +283,7 @@ def test_load_profile_rejects_non_integer_register_count():
     """Reject a non-integer register count."""
     with pytest.raises(
         ProfileError,
-        match="register 0 count must be an integer between 1 and 125",
+        match="profile registers.0.count: .*not of type 'integer'",
     ):
         load_valid_profile(register_overrides={"count": "two"})
 
@@ -277,7 +292,7 @@ def test_load_profile_rejects_register_count_above_modbus_limit():
     """Reject counts above the Modbus read limit."""
     with pytest.raises(
         ProfileError,
-        match="register 0 count must be an integer between 1 and 125",
+        match="profile registers.0.count: .*greater than the maximum",
     ):
         load_valid_profile(register_overrides={"count": 126})
 
@@ -286,7 +301,7 @@ def test_load_profile_rejects_boolean_register_count():
     """Reject a boolean register count."""
     with pytest.raises(
         ProfileError,
-        match="register 0 count must be an integer between 1 and 125",
+        match="profile registers.0.count: .*not of type 'integer'",
     ):
         load_valid_profile(register_overrides={"count": True})
 
@@ -295,7 +310,7 @@ def test_load_profile_rejects_uint32_with_single_register():
     """Require two registers for unsigned 32-bit values."""
     with pytest.raises(
         ProfileError,
-        match="register 0 data_type uint32 requires count 2",
+        match="profile registers.0.count: 2 was expected",
     ):
         load_valid_profile(register_overrides={"data_type": "uint32"})
 
@@ -304,7 +319,7 @@ def test_load_profile_rejects_int32_with_single_register():
     """Require two registers for signed 32-bit values."""
     with pytest.raises(
         ProfileError,
-        match="register 0 data_type int32 requires count 2",
+        match="profile registers.0.count: 2 was expected",
     ):
         load_valid_profile(register_overrides={"data_type": "int32"})
 
@@ -313,7 +328,7 @@ def test_load_profile_rejects_float32_with_single_register():
     """Require two registers for 32-bit floating-point values."""
     with pytest.raises(
         ProfileError,
-        match="register 0 data_type float32 requires count 2",
+        match="profile registers.0.count: 2 was expected",
     ):
         load_valid_profile(register_overrides={"data_type": "float32"})
 
@@ -322,7 +337,7 @@ def test_load_profile_rejects_uint16_with_multiple_registers():
     """Require one register for unsigned 16-bit values."""
     with pytest.raises(
         ProfileError,
-        match="register 0 data_type uint16 requires count 1",
+        match="profile registers.0.count: 1 was expected",
     ):
         load_valid_profile(register_overrides={"count": 2})
 
@@ -331,7 +346,7 @@ def test_load_profile_rejects_int16_with_multiple_registers():
     """Require one register for signed 16-bit values."""
     with pytest.raises(
         ProfileError,
-        match="register 0 data_type int16 requires count 1",
+        match="profile registers.0.count: 1 was expected",
     ):
         load_valid_profile(
             register_overrides={"data_type": "int16", "count": 2}
@@ -342,7 +357,7 @@ def test_load_profile_rejects_unsupported_data_type():
     """Reject an unsupported register data type."""
     with pytest.raises(
         ProfileError,
-        match="register 0 has unsupported data_type: uint128",
+        match="profile registers.0.data_type: .*is not one of",
     ):
         load_valid_profile(register_overrides={"data_type": "uint128"})
 
@@ -351,20 +366,26 @@ def test_load_profile_rejects_missing_data_type():
     """Reject a register definition without a data type."""
     with pytest.raises(
         ProfileError,
-        match="register 0 missing required field: data_type",
+        match="profile registers.0: .*data_type.*required property",
     ):
         load_valid_profile(register_overrides={"data_type": _DELETE})
 
 
 def test_load_profile_rejects_null_data_type():
     """Reject a null register data type."""
-    with pytest.raises(ProfileError, match="register 0 data_type must be a string"):
+    with pytest.raises(
+        ProfileError,
+        match="profile registers.0.data_type: .*not of type 'string'",
+    ):
         load_valid_profile(register_overrides={"data_type": None})
 
 
 def test_load_profile_rejects_empty_data_type():
     """Reject an empty register data type."""
-    with pytest.raises(ProfileError, match="register 0 has unsupported data_type"):
+    with pytest.raises(
+        ProfileError,
+        match="profile registers.0.data_type: .*is not one of",
+    ):
         load_valid_profile(register_overrides={"data_type": ""})
 
 
@@ -378,6 +399,7 @@ def test_load_profile_rejects_register_range_past_final_address():
             register_overrides={
                 "address": 65535,
                 "count": 2,
+                "data_type": "string",
             }
         )
 
@@ -386,7 +408,7 @@ def test_load_profile_rejects_non_string_data_type():
     """Reject a register data type that is not a string."""
     with pytest.raises(
         ProfileError,
-        match="register 0 data_type must be a string",
+        match="profile registers.0.data_type: .*not of type 'string'",
     ):
         load_valid_profile(register_overrides={"data_type": []})
 
@@ -395,7 +417,7 @@ def test_load_profile_rejects_missing_address():
     """Reject a register definition without an address."""
     with pytest.raises(
         ProfileError,
-        match="register 0 missing required field: address",
+        match="profile registers.0: .*address.*required property",
     ):
         load_valid_profile(register_overrides={"address": _DELETE})
 
@@ -405,7 +427,7 @@ def test_load_profile_rejects_null_or_empty_string_address(address):
     """Reject null or empty-string register addresses."""
     with pytest.raises(
         ProfileError,
-        match="register 0 address must be an integer between 0 and 65535",
+        match="profile registers.0.address: .*not of type 'integer'",
     ):
         load_valid_profile(register_overrides={"address": address})
 
@@ -414,7 +436,7 @@ def test_load_profile_rejects_non_integer_address():
     """Reject a non-integer register address."""
     with pytest.raises(
         ProfileError,
-        match="register 0 address must be an integer between 0 and 65535",
+        match="profile registers.0.address: .*not of type 'integer'",
     ):
         load_valid_profile(register_overrides={"address": "two hundred"})
 
@@ -423,7 +445,7 @@ def test_load_profile_rejects_boolean_address():
     """Reject a boolean register address."""
     with pytest.raises(
         ProfileError,
-        match="register 0 address must be an integer between 0 and 65535",
+        match="profile registers.0.address: .*not of type 'integer'",
     ):
         load_valid_profile(register_overrides={"address": True})
 
@@ -432,7 +454,7 @@ def test_load_profile_rejects_negative_address():
     """Reject a negative register address."""
     with pytest.raises(
         ProfileError,
-        match="register 0 address must be an integer between 0 and 65535",
+        match="profile registers.0.address: .*less than the minimum",
     ):
         load_valid_profile(register_overrides={"address": -1})
 
@@ -441,6 +463,6 @@ def test_load_profile_rejects_address_above_modbus_limit():
     """Reject addresses beyond the Modbus address space."""
     with pytest.raises(
         ProfileError,
-        match="register 0 address must be an integer between 0 and 65535",
+        match="profile registers.0.address: .*greater than the maximum",
     ):
         load_valid_profile(register_overrides={"address": 65536})
