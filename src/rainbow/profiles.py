@@ -7,6 +7,16 @@ from pathlib import Path
 import yaml
 
 
+_DATA_TYPE_COUNTS: dict[str, int | None] = {
+    "uint16": 1,
+    "int16": 1,
+    "uint32": 2,
+    "int32": 2,
+    "float32": 2,
+    "string": None,
+}
+
+
 class ProfileError(ValueError):
     """Raised when a device profile is invalid."""
 
@@ -35,46 +45,42 @@ class DeviceProfile:
     registers: tuple[RegisterDefinition, ...]
 
 
+def _load_register(index: int, register_data: object) -> RegisterDefinition:
+    if not isinstance(register_data, Mapping):
+        raise ProfileError(f"register {index} must be a mapping")
+
+    count = register_data.get("count", 1)
+    if type(count) is not int or not 1 <= count <= 125:
+        raise ProfileError(
+            f"register {index} count must be an integer between 1 and 125"
+        )
+
+    address = register_data.get("address")
+    if isinstance(address, int) and address + count - 1 > 65535:
+        raise ProfileError(f"register {index} range exceeds address 65535")
+
+    if "data_type" not in register_data:
+        raise ProfileError(f"register {index} missing required field: data_type")
+    data_type = register_data.get("data_type")
+    if not isinstance(data_type, str):
+        raise ProfileError(f"register {index} data_type must be a string")
+    if data_type not in _DATA_TYPE_COUNTS:
+        raise ProfileError(f"register {index} has unsupported data_type: {data_type}")
+
+    required_count = _DATA_TYPE_COUNTS[data_type]
+    if required_count is not None and count != required_count:
+        raise ProfileError(
+            f"register {index} data_type {data_type} requires count {required_count}"
+        )
+
+    return RegisterDefinition(**register_data)
+
+
 def _load_registers(registers_data: list[object]) -> tuple[RegisterDefinition, ...]:
-    registers = []
-    for index, register_data in enumerate(registers_data):
-        if not isinstance(register_data, Mapping):
-            raise ProfileError(f"register {index} must be a mapping")
-        count = register_data.get("count", 1)
-        if type(count) is not int or not 1 <= count <= 125:
-            raise ProfileError(
-                f"register {index} count must be an integer between 1 and 125"
-            )
-        address = register_data.get("address")
-        if isinstance(address, int) and address + count - 1 > 65535:
-            raise ProfileError(f"register {index} range exceeds address 65535")
-        if "data_type" not in register_data:
-            raise ProfileError(f"register {index} missing required field: data_type")
-        data_type = register_data.get("data_type")
-        supported_data_types = {
-            "uint16",
-            "int16",
-            "uint32",
-            "int32",
-            "float32",
-            "string",
-        }
-        if not isinstance(data_type, str):
-            raise ProfileError(f"register {index} data_type must be a string")
-        if data_type not in supported_data_types:
-            raise ProfileError(
-                f"register {index} has unsupported data_type: {data_type}"
-            )
-        if data_type in {"uint16", "int16"} and count != 1:
-            raise ProfileError(
-                f"register {index} data_type {data_type} requires count 1"
-            )
-        if data_type in {"uint32", "int32", "float32"} and count != 2:
-            raise ProfileError(
-                f"register {index} data_type {data_type} requires count 2"
-            )
-        registers.append(RegisterDefinition(**register_data))
-    return tuple(registers)
+    return tuple(
+        _load_register(index, register_data)
+        for index, register_data in enumerate(registers_data)
+    )
 
 
 def load_profile(path: str | Path) -> DeviceProfile:
