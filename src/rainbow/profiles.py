@@ -46,12 +46,16 @@ class DeviceProfile:
 
 
 def _require_register_mapping(index: int, register_data: object) -> Mapping:
+    """Return one register entry as a mapping."""
+
     if not isinstance(register_data, Mapping):
         raise ProfileError(f"register {index} must be a mapping")
     return register_data
 
 
 def _validate_count(index: int, register_data: Mapping) -> int:
+    """Return a valid Modbus register count."""
+
     count = register_data.get("count", 1)
     if type(count) is not int or not 1 <= count <= 125:
         raise ProfileError(
@@ -61,6 +65,8 @@ def _validate_count(index: int, register_data: Mapping) -> int:
 
 
 def _validate_address(index: int, register_data: Mapping, count: int) -> None:
+    """Validate a register address and its complete range."""
+
     if "address" not in register_data:
         raise ProfileError(f"register {index} missing required field: address")
     address = register_data.get("address")
@@ -73,6 +79,8 @@ def _validate_address(index: int, register_data: Mapping, count: int) -> None:
 
 
 def _validate_data_type(index: int, register_data: Mapping, count: int) -> None:
+    """Validate a data type and its required register count."""
+
     if "data_type" not in register_data:
         raise ProfileError(f"register {index} missing required field: data_type")
     data_type = register_data.get("data_type")
@@ -89,6 +97,8 @@ def _validate_data_type(index: int, register_data: Mapping, count: int) -> None:
 
 
 def _load_register(index: int, register_data: object) -> RegisterDefinition:
+    """Load and validate one register definition."""
+
     register_mapping = _require_register_mapping(index, register_data)
     count = _validate_count(index, register_mapping)
     _validate_address(index, register_mapping, count)
@@ -98,6 +108,8 @@ def _load_register(index: int, register_data: object) -> RegisterDefinition:
 
 
 def _load_registers(registers_data: list[object]) -> tuple[RegisterDefinition, ...]:
+    """Load all register definitions in profile order."""
+
     return tuple(
         _load_register(index, register_data)
         for index, register_data in enumerate(registers_data)
