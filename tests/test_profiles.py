@@ -79,6 +79,15 @@ def test_build_device_profile_rejects_non_mapping():
         build_device_profile(None)
 
 
+def test_build_device_profile_rejects_unknown_profile_field():
+    """Reject unknown profile fields that may be misspelled."""
+    with pytest.raises(
+        ProfileError,
+        match="profile: Additional properties are not allowed",
+    ):
+        load_valid_profile(profile_overrides={"manufactuer": "Example Energy"})
+
+
 def test_load_profile_rejects_missing_manufacturer():
     """Reject profiles without a manufacturer."""
     with pytest.raises(ProfileError, match="profile: .*manufacturer.*required property"):
@@ -268,6 +277,31 @@ def test_load_profile_rejects_unsupported_word_order():
                 "word_order": "middle",
             }
         )
+
+
+def test_build_device_profile_defaults_register_count():
+    """Default an omitted register count to one."""
+    profile = load_valid_profile(register_overrides={"count": _DELETE})
+
+    assert profile.registers[0].count == 1
+
+
+def test_build_device_profile_supports_variable_length_string():
+    """Allow string values to span a variable number of registers."""
+    profile = load_valid_profile(
+        register_overrides={"data_type": "string", "count": 10}
+    )
+
+    assert profile.registers[0].count == 10
+
+
+def test_build_device_profile_rejects_unknown_register_field():
+    """Reject unknown register fields that may be misspelled."""
+    with pytest.raises(
+        ProfileError,
+        match="profile registers.0: Additional properties are not allowed",
+    ):
+        load_valid_profile(register_overrides={"adress": 100})
 
 
 def test_load_profile_rejects_zero_register_count():

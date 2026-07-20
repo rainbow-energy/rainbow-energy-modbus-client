@@ -21,10 +21,16 @@ _DATA_TYPE_COUNTS: dict[str, int | None] = {
 _NON_EMPTY_STRING_SCHEMA = {"type": "string", "pattern": r"\S"}
 _REGISTER_SCHEMA = {
     "type": "object",
+    "additionalProperties": False,
     "required": ["key", "name", "address", "data_type"],
     "properties": {
         "key": _NON_EMPTY_STRING_SCHEMA,
         "name": _NON_EMPTY_STRING_SCHEMA,
+        "function": {},
+        "scale": {},
+        "unit": {},
+        "access": {},
+        "word_order": {},
         "address": {
             "type": "integer",
             "minimum": 0,
@@ -75,6 +81,7 @@ _PROFILE_VALIDATOR = Draft202012Validator(
     {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",
+        "additionalProperties": False,
         "required": ["manufacturer", "model", "registers"],
         "properties": {
             "manufacturer": _NON_EMPTY_STRING_SCHEMA,
