@@ -18,6 +18,8 @@
   4. Refactor while keeping all tests green.
 - Work through one tests at a time and ask for user confirmation of next step.
 - Use injected fake clients in unit tests; tests must not require USB hardware.
+- Aim for 100% code coverage; cover new code and close gaps shown by
+  `make test` (`--cov-report=term-missing`).
 - Prefer clear application errors while preserving underlying exceptions as causes.
 - Add concise docstrings to modules and public classes, functions, and methods.
 - Do not add speculative abstractions or unrelated features.

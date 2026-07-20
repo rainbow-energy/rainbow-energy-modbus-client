@@ -52,6 +52,17 @@ registers: []
     )
 
 
+def test_load_profile_wraps_invalid_yaml():
+    """Wrap malformed YAML in a profile error."""
+    with (
+        patch("pathlib.Path.open", mock_open(read_data="manufacturer: [invalid")),
+        pytest.raises(ProfileError, match="Invalid YAML") as error,
+    ):
+        load_profile("profile.yaml")
+
+    assert error.value.__cause__ is not None
+
+
 def load_valid_profile(*, profile_overrides=None, register_overrides=None):
     """Build a copy of the valid profile with selected values overridden."""
     profile_data = deepcopy(_VALID_PROFILE)
