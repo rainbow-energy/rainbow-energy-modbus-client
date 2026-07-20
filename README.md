@@ -7,19 +7,20 @@ adapter and returns structured data.
 
 ```bash
 make sync
+make build
 make test
 make lint
 ```
 
 ## Docker
 
-Build the production image:
+Build the development image:
 
 ```bash
 make build
 ```
 
-Run the test suite in the development image:
+Run the test suite using that image:
 
 ```bash
 make test

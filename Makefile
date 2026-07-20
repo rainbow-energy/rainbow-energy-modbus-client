@@ -1,19 +1,18 @@
-.PHONY: help sync test lint check build test
+.PHONY: help sync test lint check build
 
 help:
 	@printf '%s\n' \
 		"make sync          Install locked dependencies" \
-		"make test          Run the test suite" \
+		"make build         Build the development image" \
+		"make test          Run tests in the development image" \
 		"make lint          Run Ruff checks" \
-		"make check         Run lint and tests" \
-		"make build  Build the production image" \
-		"make test   Build and run tests in Docker"
+		"make check         Run lint and tests"
 
 sync:
 	uv sync
 
-test:
-	uv run --locked pytest
+test: build
+	docker run --rm rainbow-dev
 
 lint:
 	uv run --locked ruff check .
@@ -21,8 +20,4 @@ lint:
 check: lint test
 
 build:
-	docker build --target production -t rainbow .
-
-test:
 	docker build --target development -t rainbow-dev .
-	docker run --rm rainbow-dev
