@@ -14,11 +14,16 @@ class FakeReader:
     def __init__(self, values: tuple[int, ...]) -> None:
         """Store the values that the next read should return."""
         self.values = values
-        self.request: tuple[int, int] | None = None
+        self.request: tuple[str, int, int] | None = None
 
     def read_holding_registers(self, start_address: int, count: int) -> RegisterData:
-        """Record the request and return canned register values."""
-        self.request = (start_address, count)
+        """Record a holding-register request and return canned values."""
+        self.request = ("holding", start_address, count)
+        return RegisterData(device_id=1, start_address=start_address, values=self.values)
+
+    def read_input_registers(self, start_address: int, count: int) -> RegisterData:
+        """Record an input-register request and return canned values."""
+        self.request = ("input", start_address, count)
         return RegisterData(device_id=1, start_address=start_address, values=self.values)
 
 
@@ -44,7 +49,7 @@ def test_read_measurement_fetches_and_decodes_holding_register():
 
     measurement = read_measurement(reader, profile, "battery_soc")
 
-    assert reader.request == (184, 1)
+    assert reader.request == ("holding", 184, 1)
     assert measurement == Measurement(
         key="battery_soc",
         name="Battery SOC",
@@ -76,8 +81,8 @@ def test_read_measurement_rejects_unknown_key():
         read_measurement(FakeReader(values=(85,)), profile, "grid_power")
 
 
-def test_read_measurement_rejects_input_registers():
-    """Reject input registers until the reader supports them."""
+def test_read_measurement_fetches_and_decodes_input_register():
+    """Read and decode an input-register measurement from the profile."""
     profile = DeviceProfile(
         manufacturer="Example Energy",
         model="Example 8K",
@@ -94,11 +99,12 @@ def test_read_measurement_rejects_input_registers():
             ),
         ),
     )
+    reader = FakeReader(values=(2300,))
 
-    with pytest.raises(
-        NotImplementedError,
-        match="input registers are not supported: grid_voltage",
-    ):
-        read_measurement(FakeReader(values=(2300,)), profile, "grid_voltage")
+    measurement = read_measurement(reader, profile, "grid_voltage")
 
-
+    assert reader.request == ("input", 150, 1)
+    assert measurement.key == "grid_voltage"
+    assert measurement.name == "Grid Voltage"
+    assert measurement.value == pytest.approx(230.0)
+    assert measurement.unit == "V"

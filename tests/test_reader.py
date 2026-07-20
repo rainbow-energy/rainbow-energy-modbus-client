@@ -32,6 +32,13 @@ class FakeModbusClient:
         self.request = (address, count, device_id)
         return FakeModbusResponse()
 
+    def read_input_registers(
+        self, address: int, *, count: int, device_id: int
+    ) -> object:
+        """Record and satisfy an input-register request."""
+        self.request = (address, count, device_id)
+        return FakeModbusResponse()
+
     def close(self) -> None:
         """Record that the fake transport was closed."""
         self.closed = True
@@ -82,6 +89,21 @@ def test_read_holding_registers_returns_structured_data():
     reader = Rs485Reader(port="/dev/ttyUSB0", device_id=1, client=client)
 
     result = reader.read_holding_registers(start_address=100, count=3)
+
+    assert result == RegisterData(
+        device_id=1,
+        start_address=100,
+        values=(2301, 42, 875),
+    )
+    assert client.request == (100, 3, 1)
+
+
+def test_read_input_registers_returns_structured_data():
+    """Return structured data for a successful input-register read."""
+    client = FakeModbusClient()
+    reader = Rs485Reader(port="/dev/ttyUSB0", device_id=1, client=client)
+
+    result = reader.read_input_registers(start_address=100, count=3)
 
     assert result == RegisterData(
         device_id=1,

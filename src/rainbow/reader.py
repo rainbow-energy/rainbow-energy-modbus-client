@@ -1,5 +1,6 @@
-"""Read raw Modbus holding registers through a USB-RS485 adapter."""
+"""Read raw Modbus registers through a USB-RS485 adapter."""
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from types import TracebackType
 from typing import Protocol, Self
@@ -27,6 +28,12 @@ class ModbusClient(Protocol):
         """Read holding registers from one Modbus device."""
         ...
 
+    def read_input_registers(
+        self, address: int, *, count: int, device_id: int
+    ) -> ModbusResponse:
+        """Read input registers from one Modbus device."""
+        ...
+
     def close(self) -> None:
         """Close the Modbus transport."""
         ...
@@ -46,7 +53,7 @@ class RegisterReadError(RuntimeError):
 
 
 class Rs485Reader:
-    """Read holding registers from a Modbus RTU device."""
+    """Read holding and input registers from a Modbus RTU device."""
 
     def __init__(
         self,
@@ -81,6 +88,27 @@ class Rs485Reader:
 
     def read_holding_registers(self, start_address: int, count: int) -> RegisterData:
         """Read and return a contiguous range of holding registers."""
+        return self._read_registers(
+            self._client.read_holding_registers,
+            start_address,
+            count,
+        )
+
+    def read_input_registers(self, start_address: int, count: int) -> RegisterData:
+        """Read and return a contiguous range of input registers."""
+        return self._read_registers(
+            self._client.read_input_registers,
+            start_address,
+            count,
+        )
+
+    def _read_registers(
+        self,
+        read: Callable[..., ModbusResponse],
+        start_address: int,
+        count: int,
+    ) -> RegisterData:
+        """Validate and execute one contiguous register read."""
         if not 0 <= start_address <= 65535:
             raise ValueError("start_address must be between 0 and 65535")
         if not 1 <= count <= 125:
@@ -88,7 +116,7 @@ class Rs485Reader:
         if start_address + count - 1 > 65535:
             raise ValueError("register range exceeds address 65535")
         try:
-            response = self._client.read_holding_registers(
+            response = read(
                 start_address,
                 count=count,
                 device_id=self._device_id,
