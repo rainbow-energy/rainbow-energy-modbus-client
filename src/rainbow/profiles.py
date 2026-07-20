@@ -45,6 +45,34 @@ def _load_registers(registers_data: list[object]) -> tuple[RegisterDefinition, .
             raise ProfileError(
                 f"register {index} count must be an integer between 1 and 125"
             )
+        address = register_data.get("address")
+        if isinstance(address, int) and address + count - 1 > 65535:
+            raise ProfileError(f"register {index} range exceeds address 65535")
+        if "data_type" not in register_data:
+            raise ProfileError(f"register {index} missing required field: data_type")
+        data_type = register_data.get("data_type")
+        supported_data_types = {
+            "uint16",
+            "int16",
+            "uint32",
+            "int32",
+            "float32",
+            "string",
+        }
+        if not isinstance(data_type, str):
+            raise ProfileError(f"register {index} data_type must be a string")
+        if data_type not in supported_data_types:
+            raise ProfileError(
+                f"register {index} has unsupported data_type: {data_type}"
+            )
+        if data_type in {"uint16", "int16"} and count != 1:
+            raise ProfileError(
+                f"register {index} data_type {data_type} requires count 1"
+            )
+        if data_type in {"uint32", "int32", "float32"} and count != 2:
+            raise ProfileError(
+                f"register {index} data_type {data_type} requires count 2"
+            )
         registers.append(RegisterDefinition(**register_data))
     return tuple(registers)
 

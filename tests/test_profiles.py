@@ -269,3 +269,244 @@ registers:
         match="register 0 count must be an integer between 1 and 125",
     ):
         load_profile(profile_path)
+
+
+def test_load_profile_rejects_uint32_with_single_register(tmp_path):
+    profile_path = tmp_path / "invalid-uint32-count.yaml"
+    profile_path.write_text(
+        """
+manufacturer: Example Energy
+model: Example 8K
+registers:
+  - key: total_energy
+    name: Total Energy
+    address: 200
+    function: holding
+    data_type: uint32
+    count: 1
+    scale: 0.1
+    unit: kWh
+    access: read
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ProfileError,
+        match="register 0 data_type uint32 requires count 2",
+    ):
+        load_profile(profile_path)
+
+
+def test_load_profile_rejects_int32_with_single_register(tmp_path):
+    profile_path = tmp_path / "invalid-int32-count.yaml"
+    profile_path.write_text(
+        """
+manufacturer: Example Energy
+model: Example 8K
+registers:
+  - key: signed_energy
+    name: Signed Energy
+    address: 200
+    function: holding
+    data_type: int32
+    count: 1
+    scale: 0.1
+    unit: kWh
+    access: read
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ProfileError,
+        match="register 0 data_type int32 requires count 2",
+    ):
+        load_profile(profile_path)
+
+
+def test_load_profile_rejects_float32_with_single_register(tmp_path):
+    profile_path = tmp_path / "invalid-float32-count.yaml"
+    profile_path.write_text(
+        """
+manufacturer: Example Energy
+model: Example 8K
+registers:
+  - key: grid_voltage
+    name: Grid Voltage
+    address: 200
+    function: holding
+    data_type: float32
+    count: 1
+    scale: 1
+    unit: V
+    access: read
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ProfileError,
+        match="register 0 data_type float32 requires count 2",
+    ):
+        load_profile(profile_path)
+
+
+def test_load_profile_rejects_uint16_with_multiple_registers(tmp_path):
+    profile_path = tmp_path / "invalid-uint16-count.yaml"
+    profile_path.write_text(
+        """
+manufacturer: Example Energy
+model: Example 8K
+registers:
+  - key: battery_soc
+    name: Battery SOC
+    address: 200
+    function: holding
+    data_type: uint16
+    count: 2
+    scale: 1
+    unit: percent
+    access: read
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ProfileError,
+        match="register 0 data_type uint16 requires count 1",
+    ):
+        load_profile(profile_path)
+
+
+def test_load_profile_rejects_int16_with_multiple_registers(tmp_path):
+    profile_path = tmp_path / "invalid-int16-count.yaml"
+    profile_path.write_text(
+        """
+manufacturer: Example Energy
+model: Example 8K
+registers:
+  - key: battery_current
+    name: Battery Current
+    address: 200
+    function: holding
+    data_type: int16
+    count: 2
+    scale: 0.1
+    unit: A
+    access: read
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ProfileError,
+        match="register 0 data_type int16 requires count 1",
+    ):
+        load_profile(profile_path)
+
+
+def test_load_profile_rejects_unsupported_data_type(tmp_path):
+    profile_path = tmp_path / "unsupported-data-type.yaml"
+    profile_path.write_text(
+        """
+manufacturer: Example Energy
+model: Example 8K
+registers:
+  - key: total_energy
+    name: Total Energy
+    address: 200
+    function: holding
+    data_type: uint128
+    count: 1
+    scale: 1
+    unit: kWh
+    access: read
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ProfileError,
+        match="register 0 has unsupported data_type: uint128",
+    ):
+        load_profile(profile_path)
+
+
+def test_load_profile_rejects_missing_data_type(tmp_path):
+    profile_path = tmp_path / "missing-data-type.yaml"
+    profile_path.write_text(
+        """
+manufacturer: Example Energy
+model: Example 8K
+registers:
+  - key: battery_soc
+    name: Battery SOC
+    address: 200
+    function: holding
+    scale: 1
+    unit: percent
+    access: read
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ProfileError,
+        match="register 0 missing required field: data_type",
+    ):
+        load_profile(profile_path)
+
+
+def test_load_profile_rejects_register_range_past_final_address(tmp_path):
+    profile_path = tmp_path / "invalid-register-range.yaml"
+    profile_path.write_text(
+        """
+manufacturer: Example Energy
+model: Example 8K
+registers:
+  - key: total_energy
+    name: Total Energy
+    address: 65535
+    function: holding
+    data_type: uint32
+    count: 2
+    scale: 1
+    unit: kWh
+    access: read
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ProfileError,
+        match="register 0 range exceeds address 65535",
+    ):
+        load_profile(profile_path)
+
+
+def test_load_profile_rejects_non_string_data_type(tmp_path):
+    profile_path = tmp_path / "non-string-data-type.yaml"
+    profile_path.write_text(
+        """
+manufacturer: Example Energy
+model: Example 8K
+registers:
+  - key: battery_soc
+    name: Battery SOC
+    address: 200
+    function: holding
+    data_type: []
+    count: 1
+    scale: 1
+    unit: percent
+    access: read
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ProfileError,
+        match="register 0 data_type must be a string",
+    ):
+        load_profile(profile_path)
