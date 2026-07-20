@@ -1,3 +1,5 @@
+"""Test loading and validating YAML device profiles."""
+
 import pytest
 
 from rainbow.profiles import (
@@ -9,6 +11,7 @@ from rainbow.profiles import (
 
 
 def test_load_profile_from_yaml(tmp_path):
+    """Load a complete device profile from YAML."""
     profile_path = tmp_path / "example.yaml"
     profile_path.write_text(
         """
@@ -48,6 +51,7 @@ registers:
 
 
 def test_load_profile_wraps_invalid_yaml(tmp_path):
+    """Wrap malformed YAML in a profile error."""
     profile_path = tmp_path / "invalid.yaml"
     profile_path.write_text("manufacturer: [invalid", encoding="utf-8")
 
@@ -58,6 +62,7 @@ def test_load_profile_wraps_invalid_yaml(tmp_path):
 
 
 def test_load_profile_rejects_empty_yaml(tmp_path):
+    """Reject an empty YAML document."""
     profile_path = tmp_path / "empty.yaml"
     profile_path.write_text("", encoding="utf-8")
 
@@ -66,6 +71,7 @@ def test_load_profile_rejects_empty_yaml(tmp_path):
 
 
 def test_load_profile_rejects_missing_manufacturer(tmp_path):
+    """Reject profiles without a manufacturer."""
     profile_path = tmp_path / "missing-manufacturer.yaml"
     profile_path.write_text(
         """
@@ -80,6 +86,7 @@ registers: []
 
 
 def test_load_profile_rejects_missing_model(tmp_path):
+    """Reject profiles without a model."""
     profile_path = tmp_path / "missing-model.yaml"
     profile_path.write_text(
         """
@@ -94,6 +101,7 @@ registers: []
 
 
 def test_load_profile_rejects_missing_registers(tmp_path):
+    """Reject profiles without register definitions."""
     profile_path = tmp_path / "missing-registers.yaml"
     profile_path.write_text(
         """
@@ -108,6 +116,7 @@ model: Example 8K
 
 
 def test_load_profile_rejects_non_list_registers(tmp_path):
+    """Reject a register collection that is not a list."""
     profile_path = tmp_path / "invalid-registers.yaml"
     profile_path.write_text(
         """
@@ -123,6 +132,7 @@ registers: {}
 
 
 def test_load_profile_rejects_non_mapping_register(tmp_path):
+    """Reject a register entry that is not a mapping."""
     profile_path = tmp_path / "invalid-register.yaml"
     profile_path.write_text(
         """
@@ -139,6 +149,7 @@ registers:
 
 
 def test_load_profile_supports_multi_register_value(tmp_path):
+    """Load a value spanning multiple Modbus registers."""
     profile_path = tmp_path / "multi-register.yaml"
     profile_path.write_text(
         """
@@ -164,6 +175,7 @@ registers:
 
 
 def test_load_profile_rejects_zero_register_count(tmp_path):
+    """Reject a register definition with a zero count."""
     profile_path = tmp_path / "zero-count.yaml"
     profile_path.write_text(
         """
@@ -191,6 +203,7 @@ registers:
 
 
 def test_load_profile_rejects_non_integer_register_count(tmp_path):
+    """Reject a non-integer register count."""
     profile_path = tmp_path / "string-count.yaml"
     profile_path.write_text(
         """
@@ -218,6 +231,7 @@ registers:
 
 
 def test_load_profile_rejects_register_count_above_modbus_limit(tmp_path):
+    """Reject counts above the Modbus read limit."""
     profile_path = tmp_path / "large-count.yaml"
     profile_path.write_text(
         """
@@ -245,6 +259,7 @@ registers:
 
 
 def test_load_profile_rejects_boolean_register_count(tmp_path):
+    """Reject a boolean register count."""
     profile_path = tmp_path / "boolean-count.yaml"
     profile_path.write_text(
         """
@@ -272,6 +287,7 @@ registers:
 
 
 def test_load_profile_rejects_uint32_with_single_register(tmp_path):
+    """Require two registers for unsigned 32-bit values."""
     profile_path = tmp_path / "invalid-uint32-count.yaml"
     profile_path.write_text(
         """
@@ -299,6 +315,7 @@ registers:
 
 
 def test_load_profile_rejects_int32_with_single_register(tmp_path):
+    """Require two registers for signed 32-bit values."""
     profile_path = tmp_path / "invalid-int32-count.yaml"
     profile_path.write_text(
         """
@@ -326,6 +343,7 @@ registers:
 
 
 def test_load_profile_rejects_float32_with_single_register(tmp_path):
+    """Require two registers for 32-bit floating-point values."""
     profile_path = tmp_path / "invalid-float32-count.yaml"
     profile_path.write_text(
         """
@@ -353,6 +371,7 @@ registers:
 
 
 def test_load_profile_rejects_uint16_with_multiple_registers(tmp_path):
+    """Require one register for unsigned 16-bit values."""
     profile_path = tmp_path / "invalid-uint16-count.yaml"
     profile_path.write_text(
         """
@@ -380,6 +399,7 @@ registers:
 
 
 def test_load_profile_rejects_int16_with_multiple_registers(tmp_path):
+    """Require one register for signed 16-bit values."""
     profile_path = tmp_path / "invalid-int16-count.yaml"
     profile_path.write_text(
         """
@@ -407,6 +427,7 @@ registers:
 
 
 def test_load_profile_rejects_unsupported_data_type(tmp_path):
+    """Reject an unsupported register data type."""
     profile_path = tmp_path / "unsupported-data-type.yaml"
     profile_path.write_text(
         """
@@ -434,6 +455,7 @@ registers:
 
 
 def test_load_profile_rejects_missing_data_type(tmp_path):
+    """Reject a register definition without a data type."""
     profile_path = tmp_path / "missing-data-type.yaml"
     profile_path.write_text(
         """
@@ -459,6 +481,7 @@ registers:
 
 
 def test_load_profile_rejects_register_range_past_final_address(tmp_path):
+    """Reject a register range beyond the Modbus address space."""
     profile_path = tmp_path / "invalid-register-range.yaml"
     profile_path.write_text(
         """
@@ -486,6 +509,7 @@ registers:
 
 
 def test_load_profile_rejects_non_string_data_type(tmp_path):
+    """Reject a register data type that is not a string."""
     profile_path = tmp_path / "non-string-data-type.yaml"
     profile_path.write_text(
         """
@@ -513,6 +537,7 @@ registers:
 
 
 def test_load_profile_rejects_missing_address(tmp_path):
+    """Reject a register definition without an address."""
     profile_path = tmp_path / "missing-address.yaml"
     profile_path.write_text(
         """
@@ -539,6 +564,7 @@ registers:
 
 
 def test_load_profile_rejects_non_integer_address(tmp_path):
+    """Reject a non-integer register address."""
     profile_path = tmp_path / "non-integer-address.yaml"
     profile_path.write_text(
         """
@@ -566,6 +592,7 @@ registers:
 
 
 def test_load_profile_rejects_boolean_address(tmp_path):
+    """Reject a boolean register address."""
     profile_path = tmp_path / "boolean-address.yaml"
     profile_path.write_text(
         """
@@ -593,6 +620,7 @@ registers:
 
 
 def test_load_profile_rejects_negative_address(tmp_path):
+    """Reject a negative register address."""
     profile_path = tmp_path / "negative-address.yaml"
     profile_path.write_text(
         """
@@ -620,6 +648,7 @@ registers:
 
 
 def test_load_profile_rejects_address_above_modbus_limit(tmp_path):
+    """Reject addresses beyond the Modbus address space."""
     profile_path = tmp_path / "large-address.yaml"
     profile_path.write_text(
         """

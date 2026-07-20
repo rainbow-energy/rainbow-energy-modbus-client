@@ -1,3 +1,5 @@
+"""Read raw Modbus holding registers through a USB-RS485 adapter."""
+
 from dataclasses import dataclass
 from types import TracebackType
 from typing import Protocol, Self
@@ -7,21 +9,33 @@ from pymodbus.exceptions import ModbusException
 
 
 class ModbusResponse(Protocol):
+    """Describe the Modbus response behavior used by the reader."""
+
     registers: list[int]
 
-    def isError(self) -> bool: ...
+    def isError(self) -> bool:
+        """Return whether the response represents a Modbus error."""
+        ...
 
 
 class ModbusClient(Protocol):
+    """Describe the Modbus client behavior used by the reader."""
+
     def read_holding_registers(
         self, address: int, *, count: int, device_id: int
-    ) -> ModbusResponse: ...
+    ) -> ModbusResponse:
+        """Read holding registers from one Modbus device."""
+        ...
 
-    def close(self) -> None: ...
+    def close(self) -> None:
+        """Close the Modbus transport."""
+        ...
 
 
 @dataclass(frozen=True, slots=True)
 class RegisterData:
+    """Contain raw register values returned by one read."""
+
     device_id: int
     start_address: int
     values: tuple[int, ...]
@@ -32,12 +46,15 @@ class RegisterReadError(RuntimeError):
 
 
 class Rs485Reader:
+    """Read holding registers from a Modbus RTU device."""
+
     def __init__(
         self,
         port: str,
         device_id: int = 1,
         client: ModbusClient | None = None,
     ) -> None:
+        """Configure a reader for one serial port and Modbus device."""
         if not port.strip():
             raise ValueError("port must not be empty")
         if not 1 <= device_id <= 247:
@@ -46,6 +63,7 @@ class Rs485Reader:
         self._client = client or ModbusSerialClient(port=port, baudrate=9600)
 
     def __enter__(self) -> Self:
+        """Return the reader for context-managed use."""
         return self
 
     def __exit__(
@@ -54,12 +72,15 @@ class Rs485Reader:
         exception: BaseException | None,
         traceback: TracebackType | None,
     ) -> None:
+        """Close the Modbus transport when leaving a context."""
         self.close()
 
     def close(self) -> None:
+        """Close the underlying Modbus transport."""
         self._client.close()
 
     def read_holding_registers(self, start_address: int, count: int) -> RegisterData:
+        """Read and return a contiguous range of holding registers."""
         if not 0 <= start_address <= 65535:
             raise ValueError("start_address must be between 0 and 65535")
         if not 1 <= count <= 125:
