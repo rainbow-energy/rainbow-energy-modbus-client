@@ -30,6 +30,7 @@ _REGISTER_SCHEMA = {
         "data_type",
         "scale",
         "unit",
+        "access",
     ],
     "properties": {
         "key": _NON_EMPTY_STRING_SCHEMA,
@@ -49,7 +50,10 @@ _REGISTER_SCHEMA = {
                 {"pattern": r"\S"},
             ],
         },
-        "access": {},
+        "access": {
+            "type": "string",
+            "enum": ["read", "write"],
+        },
         "word_order": {},
         "address": {
             "type": "integer",
