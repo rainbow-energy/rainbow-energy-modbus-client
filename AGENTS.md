@@ -19,6 +19,7 @@
 - Work through one tests at a time and ask for user confirmation of next step.
 - Use injected fake clients in unit tests; tests must not require USB hardware.
 - Prefer clear application errors while preserving underlying exceptions as causes.
+- Add concise docstrings to modules and public classes, functions, and methods.
 - Do not add speculative abstractions or unrelated features.
 
 ## Commands
