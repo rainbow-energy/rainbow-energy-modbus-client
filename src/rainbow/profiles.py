@@ -53,13 +53,18 @@ def _require_register_mapping(index: int, register_data: object) -> Mapping:
     return register_data
 
 
-def _validate_key(index: int, register_data: Mapping) -> None:
-    """Require a register key."""
-    if "key" not in register_data:
-        raise ProfileError(f"register {index} missing required field: key")
-    key = register_data["key"]
-    if not isinstance(key, str) or not key.strip():
-        raise ProfileError(f"register {index} key must be a non-empty string")
+def _require_register_string(
+    index: int,
+    register_data: Mapping,
+    field: str,
+) -> str:
+    """Return a required, non-empty register string field."""
+    if field not in register_data:
+        raise ProfileError(f"register {index} missing required field: {field}")
+    value = register_data[field]
+    if not isinstance(value, str) or not value.strip():
+        raise ProfileError(f"register {index} {field} must be a non-empty string")
+    return value
 
 
 def _validate_count(index: int, register_data: Mapping) -> int:
@@ -120,7 +125,8 @@ def _validate_word_order(index: int, register_data: Mapping) -> None:
 def _load_register(index: int, register_data: object) -> RegisterDefinition:
     """Load and validate one register definition."""
     register_mapping = _require_register_mapping(index, register_data)
-    _validate_key(index, register_mapping)
+    _require_register_string(index, register_mapping, "key")
+    _require_register_string(index, register_mapping, "name")
     count = _validate_count(index, register_mapping)
     _validate_address(index, register_mapping, count)
     _validate_data_type(index, register_mapping, count)

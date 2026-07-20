@@ -149,6 +149,22 @@ def test_build_device_profile_rejects_invalid_register_key(key):
         load_valid_profile(register_overrides={"key": key})
 
 
+@pytest.mark.parametrize(
+    ("name", "message"),
+    [
+        (_DELETE, "register 0 missing required field: name"),
+        (None, "register 0 name must be a non-empty string"),
+        (42, "register 0 name must be a non-empty string"),
+        ("", "register 0 name must be a non-empty string"),
+        ("   ", "register 0 name must be a non-empty string"),
+    ],
+)
+def test_build_device_profile_rejects_invalid_register_name(name, message):
+    """Reject a register definition with a missing or invalid name."""
+    with pytest.raises(ProfileError, match=message):
+        load_valid_profile(register_overrides={"name": name})
+
+
 def test_load_profile_supports_multi_register_value():
     """Load a value spanning multiple Modbus registers."""
     profile = load_valid_profile(
