@@ -176,10 +176,20 @@ def _load_registers(registers_data: list[Mapping]) -> tuple[RegisterDefinition, 
         for index, register_data in enumerate(registers_data)
     )
     seen_keys: set[str] = set()
+    occupied: dict[tuple[str, int], str] = {}
     for register in registers:
         if register.key in seen_keys:
             raise ProfileError(f"duplicate register key: {register.key}")
         seen_keys.add(register.key)
+        for offset in range(register.count):
+            address = register.address + offset
+            space = (register.function, address)
+            existing = occupied.get(space)
+            if existing is not None:
+                raise ProfileError(
+                    f"overlapping register addresses: {existing} and {register.key}"
+                )
+            occupied[space] = register.key
     return registers
 
 

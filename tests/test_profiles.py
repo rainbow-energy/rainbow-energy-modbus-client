@@ -314,6 +314,26 @@ def test_build_device_profile_rejects_duplicate_register_keys():
         )
 
 
+def test_build_device_profile_rejects_overlapping_register_addresses():
+    """Reject registers that claim the same address in the same function."""
+    second_register = deepcopy(_VALID_PROFILE["registers"][0])
+    second_register["key"] = "battery_voltage"
+    second_register["name"] = "Battery Voltage"
+
+    with pytest.raises(
+        ProfileError,
+        match="overlapping register addresses: battery_soc and battery_voltage",
+    ):
+        load_valid_profile(
+            profile_overrides={
+                "registers": [
+                    deepcopy(_VALID_PROFILE["registers"][0]),
+                    second_register,
+                ]
+            }
+        )
+
+
 def test_load_profile_supports_multi_register_value():
     """Load a value spanning multiple Modbus registers."""
     profile = load_valid_profile(
