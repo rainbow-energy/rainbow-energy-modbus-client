@@ -239,6 +239,28 @@ def test_build_device_profile_supports_nonzero_register_scale(scale):
     assert profile.registers[0].scale == scale
 
 
+@pytest.mark.parametrize(
+    ("unit", "message"),
+    [
+        (_DELETE, "profile registers.0: .*unit.*required property"),
+        (None, "profile registers.0.unit: .*not of type 'string'"),
+        (42, "profile registers.0.unit: .*not of type 'string'"),
+        ("   ", "profile registers.0.unit: .*is not valid"),
+    ],
+)
+def test_build_device_profile_rejects_invalid_register_unit(unit, message):
+    """Reject a missing, non-string, or whitespace-only unit."""
+    with pytest.raises(ProfileError, match=message):
+        load_valid_profile(register_overrides={"unit": unit})
+
+
+def test_build_device_profile_supports_dimensionless_register():
+    """Allow an empty unit for a dimensionless register value."""
+    profile = load_valid_profile(register_overrides={"unit": ""})
+
+    assert profile.registers[0].unit == ""
+
+
 def test_load_profile_supports_multi_register_value():
     """Load a value spanning multiple Modbus registers."""
     profile = load_valid_profile(

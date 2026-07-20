@@ -22,7 +22,15 @@ _NON_EMPTY_STRING_SCHEMA = {"type": "string", "pattern": r"\S"}
 _REGISTER_SCHEMA = {
     "type": "object",
     "additionalProperties": False,
-    "required": ["key", "name", "address", "function", "data_type", "scale"],
+    "required": [
+        "key",
+        "name",
+        "address",
+        "function",
+        "data_type",
+        "scale",
+        "unit",
+    ],
     "properties": {
         "key": _NON_EMPTY_STRING_SCHEMA,
         "name": _NON_EMPTY_STRING_SCHEMA,
@@ -34,7 +42,13 @@ _REGISTER_SCHEMA = {
             "type": "number",
             "not": {"const": 0},
         },
-        "unit": {},
+        "unit": {
+            "type": "string",
+            "anyOf": [
+                {"const": ""},
+                {"pattern": r"\S"},
+            ],
+        },
         "access": {},
         "word_order": {},
         "address": {
