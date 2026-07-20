@@ -23,6 +23,7 @@ class RegisterDefinition:
     scale: float
     unit: str
     access: str
+    count: int = 1
 
 
 @dataclass(frozen=True, slots=True)
@@ -39,6 +40,11 @@ def _load_registers(registers_data: list[object]) -> tuple[RegisterDefinition, .
     for index, register_data in enumerate(registers_data):
         if not isinstance(register_data, Mapping):
             raise ProfileError(f"register {index} must be a mapping")
+        count = register_data.get("count", 1)
+        if type(count) is not int or not 1 <= count <= 125:
+            raise ProfileError(
+                f"register {index} count must be an integer between 1 and 125"
+            )
         registers.append(RegisterDefinition(**register_data))
     return tuple(registers)
 

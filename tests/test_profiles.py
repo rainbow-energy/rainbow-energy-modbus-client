@@ -136,3 +136,136 @@ registers:
 
     with pytest.raises(ProfileError, match="register 0 must be a mapping"):
         load_profile(profile_path)
+
+
+def test_load_profile_supports_multi_register_value(tmp_path):
+    profile_path = tmp_path / "multi-register.yaml"
+    profile_path.write_text(
+        """
+manufacturer: Example Energy
+model: Example 8K
+registers:
+  - key: total_energy
+    name: Total Energy
+    address: 200
+    function: holding
+    data_type: uint32
+    count: 2
+    scale: 0.1
+    unit: kWh
+    access: read
+""",
+        encoding="utf-8",
+    )
+
+    profile = load_profile(profile_path)
+
+    assert profile.registers[0].count == 2
+
+
+def test_load_profile_rejects_zero_register_count(tmp_path):
+    profile_path = tmp_path / "zero-count.yaml"
+    profile_path.write_text(
+        """
+manufacturer: Example Energy
+model: Example 8K
+registers:
+  - key: total_energy
+    name: Total Energy
+    address: 200
+    function: holding
+    data_type: uint32
+    count: 0
+    scale: 0.1
+    unit: kWh
+    access: read
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ProfileError,
+        match="register 0 count must be an integer between 1 and 125",
+    ):
+        load_profile(profile_path)
+
+
+def test_load_profile_rejects_non_integer_register_count(tmp_path):
+    profile_path = tmp_path / "string-count.yaml"
+    profile_path.write_text(
+        """
+manufacturer: Example Energy
+model: Example 8K
+registers:
+  - key: total_energy
+    name: Total Energy
+    address: 200
+    function: holding
+    data_type: uint32
+    count: two
+    scale: 0.1
+    unit: kWh
+    access: read
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ProfileError,
+        match="register 0 count must be an integer between 1 and 125",
+    ):
+        load_profile(profile_path)
+
+
+def test_load_profile_rejects_register_count_above_modbus_limit(tmp_path):
+    profile_path = tmp_path / "large-count.yaml"
+    profile_path.write_text(
+        """
+manufacturer: Example Energy
+model: Example 8K
+registers:
+  - key: register_dump
+    name: Register Dump
+    address: 200
+    function: holding
+    data_type: string
+    count: 126
+    scale: 1
+    unit: text
+    access: read
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ProfileError,
+        match="register 0 count must be an integer between 1 and 125",
+    ):
+        load_profile(profile_path)
+
+
+def test_load_profile_rejects_boolean_register_count(tmp_path):
+    profile_path = tmp_path / "boolean-count.yaml"
+    profile_path.write_text(
+        """
+manufacturer: Example Energy
+model: Example 8K
+registers:
+  - key: total_energy
+    name: Total Energy
+    address: 200
+    function: holding
+    data_type: uint32
+    count: true
+    scale: 0.1
+    unit: kWh
+    access: read
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ProfileError,
+        match="register 0 count must be an integer between 1 and 125",
+    ):
+        load_profile(profile_path)
