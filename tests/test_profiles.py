@@ -1,5 +1,7 @@
 """Test loading and validating YAML device profiles."""
 
+from unittest.mock import mock_open, patch
+
 import pytest
 
 from rainbow.profiles import (
@@ -10,11 +12,15 @@ from rainbow.profiles import (
 )
 
 
-def test_load_profile_from_yaml(tmp_path):
+def load_profile_from_yaml(yaml_text):
+    """Load a profile from in-memory YAML using a fixed filename."""
+    with patch("pathlib.Path.open", mock_open(read_data=yaml_text)):
+        return load_profile("profile.yaml")
+
+
+def test_load_profile_from_yaml():
     """Load a complete device profile from YAML."""
-    profile_path = tmp_path / "example.yaml"
-    profile_path.write_text(
-        """
+    yaml_text = """
 manufacturer: Example Energy
 model: Example 8K
 registers:
@@ -26,11 +32,9 @@ registers:
     scale: 1
     unit: percent
     access: read
-""",
-        encoding="utf-8",
-    )
+"""
 
-    profile = load_profile(profile_path)
+    profile = load_profile_from_yaml(yaml_text)
 
     assert profile == DeviceProfile(
         manufacturer="Example Energy",
@@ -50,109 +54,85 @@ registers:
     )
 
 
-def test_load_profile_wraps_invalid_yaml(tmp_path):
+def test_load_profile_wraps_invalid_yaml():
     """Wrap malformed YAML in a profile error."""
-    profile_path = tmp_path / "invalid.yaml"
-    profile_path.write_text("manufacturer: [invalid", encoding="utf-8")
+    yaml_text = "manufacturer: [invalid"
 
     with pytest.raises(ProfileError, match="Invalid YAML") as error:
-        load_profile(profile_path)
+        load_profile_from_yaml(yaml_text)
 
     assert error.value.__cause__ is not None
 
 
-def test_load_profile_rejects_empty_yaml(tmp_path):
+def test_load_profile_rejects_empty_yaml():
     """Reject an empty YAML document."""
-    profile_path = tmp_path / "empty.yaml"
-    profile_path.write_text("", encoding="utf-8")
+    yaml_text = ""
 
     with pytest.raises(ProfileError, match="Profile must be a YAML mapping"):
-        load_profile(profile_path)
+        load_profile_from_yaml(yaml_text)
 
 
-def test_load_profile_rejects_missing_manufacturer(tmp_path):
+def test_load_profile_rejects_missing_manufacturer():
     """Reject profiles without a manufacturer."""
-    profile_path = tmp_path / "missing-manufacturer.yaml"
-    profile_path.write_text(
-        """
+    yaml_text = """
 model: Example 8K
 registers: []
-""",
-        encoding="utf-8",
-    )
+"""
 
     with pytest.raises(ProfileError, match="Missing required field: manufacturer"):
-        load_profile(profile_path)
+        load_profile_from_yaml(yaml_text)
 
 
-def test_load_profile_rejects_missing_model(tmp_path):
+def test_load_profile_rejects_missing_model():
     """Reject profiles without a model."""
-    profile_path = tmp_path / "missing-model.yaml"
-    profile_path.write_text(
-        """
+    yaml_text = """
 manufacturer: Example Energy
 registers: []
-""",
-        encoding="utf-8",
-    )
+"""
 
     with pytest.raises(ProfileError, match="Missing required field: model"):
-        load_profile(profile_path)
+        load_profile_from_yaml(yaml_text)
 
 
-def test_load_profile_rejects_missing_registers(tmp_path):
+def test_load_profile_rejects_missing_registers():
     """Reject profiles without register definitions."""
-    profile_path = tmp_path / "missing-registers.yaml"
-    profile_path.write_text(
-        """
+    yaml_text = """
 manufacturer: Example Energy
 model: Example 8K
-""",
-        encoding="utf-8",
-    )
+"""
 
     with pytest.raises(ProfileError, match="Missing required field: registers"):
-        load_profile(profile_path)
+        load_profile_from_yaml(yaml_text)
 
 
-def test_load_profile_rejects_non_list_registers(tmp_path):
+def test_load_profile_rejects_non_list_registers():
     """Reject a register collection that is not a list."""
-    profile_path = tmp_path / "invalid-registers.yaml"
-    profile_path.write_text(
-        """
+    yaml_text = """
 manufacturer: Example Energy
 model: Example 8K
 registers: {}
-""",
-        encoding="utf-8",
-    )
+"""
 
     with pytest.raises(ProfileError, match="registers must be a list"):
-        load_profile(profile_path)
+        load_profile_from_yaml(yaml_text)
 
 
-def test_load_profile_rejects_non_mapping_register(tmp_path):
+def test_load_profile_rejects_non_mapping_register():
     """Reject a register entry that is not a mapping."""
-    profile_path = tmp_path / "invalid-register.yaml"
-    profile_path.write_text(
-        """
+    yaml_text = """
 manufacturer: Example Energy
 model: Example 8K
 registers:
   - battery_soc
-""",
-        encoding="utf-8",
-    )
+"""
 
     with pytest.raises(ProfileError, match="register 0 must be a mapping"):
-        load_profile(profile_path)
+        load_profile_from_yaml(yaml_text)
 
 
-def test_load_profile_supports_multi_register_value(tmp_path):
+def test_load_profile_supports_multi_register_value():
     """Load a value spanning multiple Modbus registers."""
-    profile_path = tmp_path / "multi-register.yaml"
-    profile_path.write_text(
-        """
+    yaml_text = """
 manufacturer: Example Energy
 model: Example 8K
 registers:
@@ -166,21 +146,17 @@ registers:
     scale: 0.1
     unit: kWh
     access: read
-""",
-        encoding="utf-8",
-    )
+"""
 
-    profile = load_profile(profile_path)
+    profile = load_profile_from_yaml(yaml_text)
 
     assert profile.registers[0].count == 2
     assert profile.registers[0].word_order == "big"
 
 
-def test_load_profile_supports_little_word_order(tmp_path):
+def test_load_profile_supports_little_word_order():
     """Load a multi-register value with little word order."""
-    profile_path = tmp_path / "little-word-order.yaml"
-    profile_path.write_text(
-        """
+    yaml_text = """
 manufacturer: Example Energy
 model: Example 8K
 registers:
@@ -194,20 +170,16 @@ registers:
     scale: 0.1
     unit: kWh
     access: read
-""",
-        encoding="utf-8",
-    )
+"""
 
-    profile = load_profile(profile_path)
+    profile = load_profile_from_yaml(yaml_text)
 
     assert profile.registers[0].word_order == "little"
 
 
-def test_load_profile_requires_word_order_for_uint32(tmp_path):
+def test_load_profile_requires_word_order_for_uint32():
     """Require word order for unsigned 32-bit values."""
-    profile_path = tmp_path / "missing-word-order.yaml"
-    profile_path.write_text(
-        """
+    yaml_text = """
 manufacturer: Example Energy
 model: Example 8K
 registers:
@@ -220,22 +192,18 @@ registers:
     scale: 0.1
     unit: kWh
     access: read
-""",
-        encoding="utf-8",
-    )
+"""
 
     with pytest.raises(
         ProfileError,
         match="register 0 data_type uint32 requires word_order",
     ):
-        load_profile(profile_path)
+        load_profile_from_yaml(yaml_text)
 
 
-def test_load_profile_requires_word_order_for_int32(tmp_path):
+def test_load_profile_requires_word_order_for_int32():
     """Require word order for signed 32-bit values."""
-    profile_path = tmp_path / "missing-int32-word-order.yaml"
-    profile_path.write_text(
-        """
+    yaml_text = """
 manufacturer: Example Energy
 model: Example 8K
 registers:
@@ -248,22 +216,18 @@ registers:
     scale: 0.1
     unit: kWh
     access: read
-""",
-        encoding="utf-8",
-    )
+"""
 
     with pytest.raises(
         ProfileError,
         match="register 0 data_type int32 requires word_order",
     ):
-        load_profile(profile_path)
+        load_profile_from_yaml(yaml_text)
 
 
-def test_load_profile_requires_word_order_for_float32(tmp_path):
+def test_load_profile_requires_word_order_for_float32():
     """Require word order for 32-bit floating-point values."""
-    profile_path = tmp_path / "missing-float32-word-order.yaml"
-    profile_path.write_text(
-        """
+    yaml_text = """
 manufacturer: Example Energy
 model: Example 8K
 registers:
@@ -276,22 +240,18 @@ registers:
     scale: 1
     unit: V
     access: read
-""",
-        encoding="utf-8",
-    )
+"""
 
     with pytest.raises(
         ProfileError,
         match="register 0 data_type float32 requires word_order",
     ):
-        load_profile(profile_path)
+        load_profile_from_yaml(yaml_text)
 
 
-def test_load_profile_rejects_non_string_word_order(tmp_path):
+def test_load_profile_rejects_non_string_word_order():
     """Reject a word order that is not a string."""
-    profile_path = tmp_path / "non-string-word-order.yaml"
-    profile_path.write_text(
-        """
+    yaml_text = """
 manufacturer: Example Energy
 model: Example 8K
 registers:
@@ -305,22 +265,18 @@ registers:
     scale: 0.1
     unit: kWh
     access: read
-""",
-        encoding="utf-8",
-    )
+"""
 
     with pytest.raises(
         ProfileError,
         match="register 0 word_order must be a string",
     ):
-        load_profile(profile_path)
+        load_profile_from_yaml(yaml_text)
 
 
-def test_load_profile_rejects_unsupported_word_order(tmp_path):
+def test_load_profile_rejects_unsupported_word_order():
     """Reject an unsupported word-order value."""
-    profile_path = tmp_path / "unsupported-word-order.yaml"
-    profile_path.write_text(
-        """
+    yaml_text = """
 manufacturer: Example Energy
 model: Example 8K
 registers:
@@ -334,22 +290,18 @@ registers:
     scale: 0.1
     unit: kWh
     access: read
-""",
-        encoding="utf-8",
-    )
+"""
 
     with pytest.raises(
         ProfileError,
         match="register 0 has unsupported word_order: middle",
     ):
-        load_profile(profile_path)
+        load_profile_from_yaml(yaml_text)
 
 
-def test_load_profile_rejects_zero_register_count(tmp_path):
+def test_load_profile_rejects_zero_register_count():
     """Reject a register definition with a zero count."""
-    profile_path = tmp_path / "zero-count.yaml"
-    profile_path.write_text(
-        """
+    yaml_text = """
 manufacturer: Example Energy
 model: Example 8K
 registers:
@@ -362,22 +314,18 @@ registers:
     scale: 0.1
     unit: kWh
     access: read
-""",
-        encoding="utf-8",
-    )
+"""
 
     with pytest.raises(
         ProfileError,
         match="register 0 count must be an integer between 1 and 125",
     ):
-        load_profile(profile_path)
+        load_profile_from_yaml(yaml_text)
 
 
-def test_load_profile_rejects_non_integer_register_count(tmp_path):
+def test_load_profile_rejects_non_integer_register_count():
     """Reject a non-integer register count."""
-    profile_path = tmp_path / "string-count.yaml"
-    profile_path.write_text(
-        """
+    yaml_text = """
 manufacturer: Example Energy
 model: Example 8K
 registers:
@@ -390,22 +338,18 @@ registers:
     scale: 0.1
     unit: kWh
     access: read
-""",
-        encoding="utf-8",
-    )
+"""
 
     with pytest.raises(
         ProfileError,
         match="register 0 count must be an integer between 1 and 125",
     ):
-        load_profile(profile_path)
+        load_profile_from_yaml(yaml_text)
 
 
-def test_load_profile_rejects_register_count_above_modbus_limit(tmp_path):
+def test_load_profile_rejects_register_count_above_modbus_limit():
     """Reject counts above the Modbus read limit."""
-    profile_path = tmp_path / "large-count.yaml"
-    profile_path.write_text(
-        """
+    yaml_text = """
 manufacturer: Example Energy
 model: Example 8K
 registers:
@@ -418,22 +362,18 @@ registers:
     scale: 1
     unit: text
     access: read
-""",
-        encoding="utf-8",
-    )
+"""
 
     with pytest.raises(
         ProfileError,
         match="register 0 count must be an integer between 1 and 125",
     ):
-        load_profile(profile_path)
+        load_profile_from_yaml(yaml_text)
 
 
-def test_load_profile_rejects_boolean_register_count(tmp_path):
+def test_load_profile_rejects_boolean_register_count():
     """Reject a boolean register count."""
-    profile_path = tmp_path / "boolean-count.yaml"
-    profile_path.write_text(
-        """
+    yaml_text = """
 manufacturer: Example Energy
 model: Example 8K
 registers:
@@ -446,22 +386,18 @@ registers:
     scale: 0.1
     unit: kWh
     access: read
-""",
-        encoding="utf-8",
-    )
+"""
 
     with pytest.raises(
         ProfileError,
         match="register 0 count must be an integer between 1 and 125",
     ):
-        load_profile(profile_path)
+        load_profile_from_yaml(yaml_text)
 
 
-def test_load_profile_rejects_uint32_with_single_register(tmp_path):
+def test_load_profile_rejects_uint32_with_single_register():
     """Require two registers for unsigned 32-bit values."""
-    profile_path = tmp_path / "invalid-uint32-count.yaml"
-    profile_path.write_text(
-        """
+    yaml_text = """
 manufacturer: Example Energy
 model: Example 8K
 registers:
@@ -474,22 +410,18 @@ registers:
     scale: 0.1
     unit: kWh
     access: read
-""",
-        encoding="utf-8",
-    )
+"""
 
     with pytest.raises(
         ProfileError,
         match="register 0 data_type uint32 requires count 2",
     ):
-        load_profile(profile_path)
+        load_profile_from_yaml(yaml_text)
 
 
-def test_load_profile_rejects_int32_with_single_register(tmp_path):
+def test_load_profile_rejects_int32_with_single_register():
     """Require two registers for signed 32-bit values."""
-    profile_path = tmp_path / "invalid-int32-count.yaml"
-    profile_path.write_text(
-        """
+    yaml_text = """
 manufacturer: Example Energy
 model: Example 8K
 registers:
@@ -502,22 +434,18 @@ registers:
     scale: 0.1
     unit: kWh
     access: read
-""",
-        encoding="utf-8",
-    )
+"""
 
     with pytest.raises(
         ProfileError,
         match="register 0 data_type int32 requires count 2",
     ):
-        load_profile(profile_path)
+        load_profile_from_yaml(yaml_text)
 
 
-def test_load_profile_rejects_float32_with_single_register(tmp_path):
+def test_load_profile_rejects_float32_with_single_register():
     """Require two registers for 32-bit floating-point values."""
-    profile_path = tmp_path / "invalid-float32-count.yaml"
-    profile_path.write_text(
-        """
+    yaml_text = """
 manufacturer: Example Energy
 model: Example 8K
 registers:
@@ -530,22 +458,18 @@ registers:
     scale: 1
     unit: V
     access: read
-""",
-        encoding="utf-8",
-    )
+"""
 
     with pytest.raises(
         ProfileError,
         match="register 0 data_type float32 requires count 2",
     ):
-        load_profile(profile_path)
+        load_profile_from_yaml(yaml_text)
 
 
-def test_load_profile_rejects_uint16_with_multiple_registers(tmp_path):
+def test_load_profile_rejects_uint16_with_multiple_registers():
     """Require one register for unsigned 16-bit values."""
-    profile_path = tmp_path / "invalid-uint16-count.yaml"
-    profile_path.write_text(
-        """
+    yaml_text = """
 manufacturer: Example Energy
 model: Example 8K
 registers:
@@ -558,22 +482,18 @@ registers:
     scale: 1
     unit: percent
     access: read
-""",
-        encoding="utf-8",
-    )
+"""
 
     with pytest.raises(
         ProfileError,
         match="register 0 data_type uint16 requires count 1",
     ):
-        load_profile(profile_path)
+        load_profile_from_yaml(yaml_text)
 
 
-def test_load_profile_rejects_int16_with_multiple_registers(tmp_path):
+def test_load_profile_rejects_int16_with_multiple_registers():
     """Require one register for signed 16-bit values."""
-    profile_path = tmp_path / "invalid-int16-count.yaml"
-    profile_path.write_text(
-        """
+    yaml_text = """
 manufacturer: Example Energy
 model: Example 8K
 registers:
@@ -586,22 +506,18 @@ registers:
     scale: 0.1
     unit: A
     access: read
-""",
-        encoding="utf-8",
-    )
+"""
 
     with pytest.raises(
         ProfileError,
         match="register 0 data_type int16 requires count 1",
     ):
-        load_profile(profile_path)
+        load_profile_from_yaml(yaml_text)
 
 
-def test_load_profile_rejects_unsupported_data_type(tmp_path):
+def test_load_profile_rejects_unsupported_data_type():
     """Reject an unsupported register data type."""
-    profile_path = tmp_path / "unsupported-data-type.yaml"
-    profile_path.write_text(
-        """
+    yaml_text = """
 manufacturer: Example Energy
 model: Example 8K
 registers:
@@ -614,22 +530,18 @@ registers:
     scale: 1
     unit: kWh
     access: read
-""",
-        encoding="utf-8",
-    )
+"""
 
     with pytest.raises(
         ProfileError,
         match="register 0 has unsupported data_type: uint128",
     ):
-        load_profile(profile_path)
+        load_profile_from_yaml(yaml_text)
 
 
-def test_load_profile_rejects_missing_data_type(tmp_path):
+def test_load_profile_rejects_missing_data_type():
     """Reject a register definition without a data type."""
-    profile_path = tmp_path / "missing-data-type.yaml"
-    profile_path.write_text(
-        """
+    yaml_text = """
 manufacturer: Example Energy
 model: Example 8K
 registers:
@@ -640,22 +552,18 @@ registers:
     scale: 1
     unit: percent
     access: read
-""",
-        encoding="utf-8",
-    )
+"""
 
     with pytest.raises(
         ProfileError,
         match="register 0 missing required field: data_type",
     ):
-        load_profile(profile_path)
+        load_profile_from_yaml(yaml_text)
 
 
-def test_load_profile_rejects_register_range_past_final_address(tmp_path):
+def test_load_profile_rejects_register_range_past_final_address():
     """Reject a register range beyond the Modbus address space."""
-    profile_path = tmp_path / "invalid-register-range.yaml"
-    profile_path.write_text(
-        """
+    yaml_text = """
 manufacturer: Example Energy
 model: Example 8K
 registers:
@@ -668,22 +576,18 @@ registers:
     scale: 1
     unit: kWh
     access: read
-""",
-        encoding="utf-8",
-    )
+"""
 
     with pytest.raises(
         ProfileError,
         match="register 0 range exceeds address 65535",
     ):
-        load_profile(profile_path)
+        load_profile_from_yaml(yaml_text)
 
 
-def test_load_profile_rejects_non_string_data_type(tmp_path):
+def test_load_profile_rejects_non_string_data_type():
     """Reject a register data type that is not a string."""
-    profile_path = tmp_path / "non-string-data-type.yaml"
-    profile_path.write_text(
-        """
+    yaml_text = """
 manufacturer: Example Energy
 model: Example 8K
 registers:
@@ -696,22 +600,18 @@ registers:
     scale: 1
     unit: percent
     access: read
-""",
-        encoding="utf-8",
-    )
+"""
 
     with pytest.raises(
         ProfileError,
         match="register 0 data_type must be a string",
     ):
-        load_profile(profile_path)
+        load_profile_from_yaml(yaml_text)
 
 
-def test_load_profile_rejects_missing_address(tmp_path):
+def test_load_profile_rejects_missing_address():
     """Reject a register definition without an address."""
-    profile_path = tmp_path / "missing-address.yaml"
-    profile_path.write_text(
-        """
+    yaml_text = """
 manufacturer: Example Energy
 model: Example 8K
 registers:
@@ -723,22 +623,18 @@ registers:
     scale: 1
     unit: percent
     access: read
-""",
-        encoding="utf-8",
-    )
+"""
 
     with pytest.raises(
         ProfileError,
         match="register 0 missing required field: address",
     ):
-        load_profile(profile_path)
+        load_profile_from_yaml(yaml_text)
 
 
-def test_load_profile_rejects_non_integer_address(tmp_path):
+def test_load_profile_rejects_non_integer_address():
     """Reject a non-integer register address."""
-    profile_path = tmp_path / "non-integer-address.yaml"
-    profile_path.write_text(
-        """
+    yaml_text = """
 manufacturer: Example Energy
 model: Example 8K
 registers:
@@ -751,22 +647,18 @@ registers:
     scale: 1
     unit: percent
     access: read
-""",
-        encoding="utf-8",
-    )
+"""
 
     with pytest.raises(
         ProfileError,
         match="register 0 address must be an integer between 0 and 65535",
     ):
-        load_profile(profile_path)
+        load_profile_from_yaml(yaml_text)
 
 
-def test_load_profile_rejects_boolean_address(tmp_path):
+def test_load_profile_rejects_boolean_address():
     """Reject a boolean register address."""
-    profile_path = tmp_path / "boolean-address.yaml"
-    profile_path.write_text(
-        """
+    yaml_text = """
 manufacturer: Example Energy
 model: Example 8K
 registers:
@@ -779,22 +671,18 @@ registers:
     scale: 1
     unit: percent
     access: read
-""",
-        encoding="utf-8",
-    )
+"""
 
     with pytest.raises(
         ProfileError,
         match="register 0 address must be an integer between 0 and 65535",
     ):
-        load_profile(profile_path)
+        load_profile_from_yaml(yaml_text)
 
 
-def test_load_profile_rejects_negative_address(tmp_path):
+def test_load_profile_rejects_negative_address():
     """Reject a negative register address."""
-    profile_path = tmp_path / "negative-address.yaml"
-    profile_path.write_text(
-        """
+    yaml_text = """
 manufacturer: Example Energy
 model: Example 8K
 registers:
@@ -807,22 +695,18 @@ registers:
     scale: 1
     unit: percent
     access: read
-""",
-        encoding="utf-8",
-    )
+"""
 
     with pytest.raises(
         ProfileError,
         match="register 0 address must be an integer between 0 and 65535",
     ):
-        load_profile(profile_path)
+        load_profile_from_yaml(yaml_text)
 
 
-def test_load_profile_rejects_address_above_modbus_limit(tmp_path):
+def test_load_profile_rejects_address_above_modbus_limit():
     """Reject addresses beyond the Modbus address space."""
-    profile_path = tmp_path / "large-address.yaml"
-    profile_path.write_text(
-        """
+    yaml_text = """
 manufacturer: Example Energy
 model: Example 8K
 registers:
@@ -835,12 +719,10 @@ registers:
     scale: 1
     unit: percent
     access: read
-""",
-        encoding="utf-8",
-    )
+"""
 
     with pytest.raises(
         ProfileError,
         match="register 0 address must be an integer between 0 and 65535",
     ):
-        load_profile(profile_path)
+        load_profile_from_yaml(yaml_text)
