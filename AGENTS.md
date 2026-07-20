@@ -22,6 +22,15 @@
 - Add concise docstrings to modules and public classes, functions, and methods.
 - Do not add speculative abstractions or unrelated features.
 
+## Commit messages
+
+- Summarize the change in a subject of about 50 characters or fewer.
+- Separate the subject from an optional body with a blank line.
+- Wrap body text at about 72 characters.
+- Explain the problem and why the change is needed rather than how the code works.
+- Document important side effects or unintuitive consequences.
+- Put issue references at the end, for example `Resolves: #123`.
+
 ## Commands
 
 - `make sync` — synchronize locked dependencies.
