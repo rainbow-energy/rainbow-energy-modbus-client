@@ -106,16 +106,37 @@ def test_load_profile_rejects_missing_manufacturer():
         load_valid_profile(profile_overrides={"manufacturer": _DELETE})
 
 
+@pytest.mark.parametrize("manufacturer", [None, "", "   "])
+def test_load_profile_rejects_invalid_manufacturer(manufacturer):
+    """Reject a manufacturer that is null or blank."""
+    with pytest.raises(ProfileError, match="manufacturer must be a non-empty string"):
+        load_valid_profile(profile_overrides={"manufacturer": manufacturer})
+
+
 def test_load_profile_rejects_missing_model():
     """Reject profiles without a model."""
     with pytest.raises(ProfileError, match="Missing required field: model"):
         load_valid_profile(profile_overrides={"model": _DELETE})
 
 
+@pytest.mark.parametrize("model", [None, "", "   "])
+def test_load_profile_rejects_invalid_model(model):
+    """Reject a model that is null or blank."""
+    with pytest.raises(ProfileError, match="model must be a non-empty string"):
+        load_valid_profile(profile_overrides={"model": model})
+
+
 def test_load_profile_rejects_missing_registers():
     """Reject profiles without register definitions."""
     with pytest.raises(ProfileError, match="Missing required field: registers"):
         load_valid_profile(profile_overrides={"registers": _DELETE})
+
+
+@pytest.mark.parametrize("registers", [None, ""])
+def test_load_profile_rejects_null_or_empty_string_registers(registers):
+    """Reject null or empty-string register collections."""
+    with pytest.raises(ProfileError, match="registers must be a list"):
+        load_valid_profile(profile_overrides={"registers": registers})
 
 
 def test_load_profile_rejects_non_list_registers():
@@ -321,6 +342,18 @@ def test_load_profile_rejects_missing_data_type():
         load_valid_profile(register_overrides={"data_type": _DELETE})
 
 
+def test_load_profile_rejects_null_data_type():
+    """Reject a null register data type."""
+    with pytest.raises(ProfileError, match="register 0 data_type must be a string"):
+        load_valid_profile(register_overrides={"data_type": None})
+
+
+def test_load_profile_rejects_empty_data_type():
+    """Reject an empty register data type."""
+    with pytest.raises(ProfileError, match="register 0 has unsupported data_type"):
+        load_valid_profile(register_overrides={"data_type": ""})
+
+
 def test_load_profile_rejects_register_range_past_final_address():
     """Reject a register range beyond the Modbus address space."""
     with pytest.raises(
@@ -351,6 +384,16 @@ def test_load_profile_rejects_missing_address():
         match="register 0 missing required field: address",
     ):
         load_valid_profile(register_overrides={"address": _DELETE})
+
+
+@pytest.mark.parametrize("address", [None, ""])
+def test_load_profile_rejects_null_or_empty_string_address(address):
+    """Reject null or empty-string register addresses."""
+    with pytest.raises(
+        ProfileError,
+        match="register 0 address must be an integer between 0 and 65535",
+    ):
+        load_valid_profile(register_overrides={"address": address})
 
 
 def test_load_profile_rejects_non_integer_address():

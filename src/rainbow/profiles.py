@@ -127,24 +127,48 @@ def _load_registers(registers_data: list[object]) -> tuple[RegisterDefinition, .
     )
 
 
+def _require_non_empty_string(profile_data: Mapping, field: str) -> str:
+    """Return a required, non-empty profile string field."""
+    if field not in profile_data:
+        raise ProfileError(f"Missing required field: {field}")
+    value = profile_data[field]
+    if not isinstance(value, str) or not value.strip():
+        raise ProfileError(f"{field} must be a non-empty string")
+    return value
+
+
+def _require_list(profile_data: Mapping, field: str) -> list[object]:
+    """Return a required profile list field."""
+    if field not in profile_data:
+        raise ProfileError(f"Missing required field: {field}")
+    value = profile_data[field]
+    if not isinstance(value, list):
+        raise ProfileError(f"{field} must be a list")
+    return value
+
+
+def _build_device_profile(profile_data: object) -> DeviceProfile:
+    """Validate parsed profile data and build a device profile."""
+    if not isinstance(profile_data, Mapping):
+        raise ProfileError("Profile must be a YAML mapping")
+
+    manufacturer = _require_non_empty_string(profile_data, "manufacturer")
+    model = _require_non_empty_string(profile_data, "model")
+    registers = _require_list(profile_data, "registers")
+
+    return DeviceProfile(
+        manufacturer=manufacturer,
+        model=model,
+        registers=_load_registers(registers),
+    )
+
+
 def load_profile(path: str | Path) -> DeviceProfile:
-    """Load a device profile from a YAML file."""
+    """Load and parse a YAML file into a device profile."""
     try:
         with Path(path).open(encoding="utf-8") as profile_file:
             profile_data = yaml.safe_load(profile_file)
     except yaml.YAMLError as error:
         raise ProfileError(f"Invalid YAML: {error}") from error
 
-    if not isinstance(profile_data, Mapping):
-        raise ProfileError("Profile must be a YAML mapping")
-    for field in ("manufacturer", "model", "registers"):
-        if field not in profile_data:
-            raise ProfileError(f"Missing required field: {field}")
-    if not isinstance(profile_data["registers"], list):
-        raise ProfileError("registers must be a list")
-
-    return DeviceProfile(
-        manufacturer=profile_data["manufacturer"],
-        model=profile_data["model"],
-        registers=_load_registers(profile_data["registers"]),
-    )
+    return _build_device_profile(profile_data)
