@@ -1,0 +1,485 @@
+# SunSynk / Deye single-phase hybrid register map for SYNK-8K-SG05LP1.
+# SunSynk single-phase register definitions (addresses and scales).
+# Omitted for now: temperature offsets, bitmasks, enums, math sensors,
+# non-contiguous multi-register values, and overlapping AUX aliases.
+manufacturer: Sunsynk
+model: SYNK-8K-SG05LP1
+registers:
+  - key: battery_soc
+    name: Battery SOC
+    address: 184
+    function: holding
+    data_type: uint16
+    scale: 1
+    unit: "%"
+    access: read
+
+  - key: battery_voltage
+    name: Battery Voltage
+    address: 183
+    function: holding
+    data_type: uint16
+    scale: 0.01
+    unit: V
+    access: read
+
+  - key: battery_power
+    name: Battery Power
+    address: 190
+    function: holding
+    data_type: int16
+    scale: 1
+    unit: W
+    access: read
+
+  - key: battery_current
+    name: Battery Current
+    address: 191
+    function: holding
+    data_type: int16
+    scale: 0.01
+    unit: A
+    access: read
+
+  - key: battery_charge_limit_current
+    name: Battery Charge Limit Current
+    address: 314
+    function: holding
+    data_type: int16
+    scale: 1
+    unit: A
+    access: read
+
+  - key: battery_discharge_limit_current
+    name: Battery Discharge Limit Current
+    address: 315
+    function: holding
+    data_type: int16
+    scale: 1
+    unit: A
+    access: read
+
+  - key: inverter_power
+    name: Inverter Power
+    address: 175
+    function: holding
+    data_type: int16
+    scale: 1
+    unit: W
+    access: read
+
+  - key: inverter_voltage
+    name: Inverter Voltage
+    address: 154
+    function: holding
+    data_type: uint16
+    scale: 0.1
+    unit: V
+    access: read
+
+  - key: inverter_current
+    name: Inverter Current
+    address: 164
+    function: holding
+    data_type: uint16
+    scale: 0.01
+    unit: A
+    access: read
+
+  - key: inverter_frequency
+    name: Inverter Frequency
+    address: 193
+    function: holding
+    data_type: uint16
+    scale: 0.01
+    unit: Hz
+    access: read
+
+  - key: grid_frequency
+    name: Grid Frequency
+    address: 79
+    function: holding
+    data_type: uint16
+    scale: 0.01
+    unit: Hz
+    access: read
+
+  - key: grid_power
+    name: Grid Power
+    address: 169
+    function: holding
+    data_type: int16
+    scale: 1
+    unit: W
+    access: read
+
+  - key: grid_ld_power
+    name: Grid LD Power
+    address: 167
+    function: holding
+    data_type: int16
+    scale: 1
+    unit: W
+    access: read
+
+  - key: grid_l2_power
+    name: Grid L2 Power
+    address: 168
+    function: holding
+    data_type: int16
+    scale: 1
+    unit: W
+    access: read
+
+  - key: grid_voltage
+    name: Grid Voltage
+    address: 150
+    function: holding
+    data_type: uint16
+    scale: 0.1
+    unit: V
+    access: read
+
+  - key: grid_ct_power
+    name: Grid CT Power
+    address: 172
+    function: holding
+    data_type: int16
+    scale: 1
+    unit: W
+    access: read
+
+  - key: load_power
+    name: Load Power
+    address: 178
+    function: holding
+    data_type: int16
+    scale: 1
+    unit: W
+    access: read
+
+  - key: load_l1_power
+    name: Load L1 Power
+    address: 176
+    function: holding
+    data_type: int16
+    scale: 1
+    unit: W
+    access: read
+
+  - key: load_l2_power
+    name: Load L2 Power
+    address: 177
+    function: holding
+    data_type: int16
+    scale: 1
+    unit: W
+    access: read
+
+  - key: load_frequency
+    name: Load Frequency
+    address: 192
+    function: holding
+    data_type: uint16
+    scale: 0.01
+    unit: Hz
+    access: read
+
+  - key: aux_power
+    name: AUX Power
+    address: 166
+    function: holding
+    data_type: int16
+    scale: 1
+    unit: W
+    access: read
+
+  - key: pv1_power
+    name: PV1 Power
+    address: 186
+    function: holding
+    data_type: int16
+    scale: 1
+    unit: W
+    access: read
+
+  - key: pv1_voltage
+    name: PV1 Voltage
+    address: 109
+    function: holding
+    data_type: uint16
+    scale: 0.1
+    unit: V
+    access: read
+
+  - key: pv1_current
+    name: PV1 Current
+    address: 110
+    function: holding
+    data_type: uint16
+    scale: 0.1
+    unit: A
+    access: read
+
+  - key: pv2_power
+    name: PV2 Power
+    address: 187
+    function: holding
+    data_type: int16
+    scale: 1
+    unit: W
+    access: read
+
+  - key: pv2_voltage
+    name: PV2 Voltage
+    address: 111
+    function: holding
+    data_type: uint16
+    scale: 0.1
+    unit: V
+    access: read
+
+  - key: pv2_current
+    name: PV2 Current
+    address: 112
+    function: holding
+    data_type: uint16
+    scale: 0.1
+    unit: A
+    access: read
+
+  - key: pv3_power
+    name: PV3 Power
+    address: 188
+    function: holding
+    data_type: int16
+    scale: 1
+    unit: W
+    access: read
+
+  - key: pv3_voltage
+    name: PV3 Voltage
+    address: 113
+    function: holding
+    data_type: uint16
+    scale: 0.1
+    unit: V
+    access: read
+
+  - key: pv3_current
+    name: PV3 Current
+    address: 114
+    function: holding
+    data_type: uint16
+    scale: 0.1
+    unit: A
+    access: read
+
+  - key: day_active_energy
+    name: Day Active Energy
+    address: 60
+    function: holding
+    data_type: int16
+    scale: 0.1
+    unit: kWh
+    access: read
+
+  - key: day_battery_charge
+    name: Day Battery Charge
+    address: 70
+    function: holding
+    data_type: uint16
+    scale: 0.1
+    unit: kWh
+    access: read
+
+  - key: day_battery_discharge
+    name: Day Battery Discharge
+    address: 71
+    function: holding
+    data_type: uint16
+    scale: 0.1
+    unit: kWh
+    access: read
+
+  - key: day_grid_import
+    name: Day Grid Import
+    address: 76
+    function: holding
+    data_type: uint16
+    scale: 0.1
+    unit: kWh
+    access: read
+
+  - key: day_grid_export
+    name: Day Grid Export
+    address: 77
+    function: holding
+    data_type: uint16
+    scale: 0.1
+    unit: kWh
+    access: read
+
+  - key: day_load_energy
+    name: Day Load Energy
+    address: 84
+    function: holding
+    data_type: uint16
+    scale: 0.1
+    unit: kWh
+    access: read
+
+  - key: day_pv_energy
+    name: Day PV Energy
+    address: 108
+    function: holding
+    data_type: uint16
+    scale: 0.1
+    unit: kWh
+    access: read
+
+  - key: day_reactive_energy
+    name: Day Reactive Energy
+    address: 61
+    function: holding
+    data_type: int16
+    scale: 0.1
+    unit: kVarh
+    access: read
+
+  - key: month_grid_energy
+    name: Month Grid Energy
+    address: 67
+    function: holding
+    data_type: uint16
+    scale: 0.1
+    unit: kWh
+    access: read
+
+  - key: month_load_energy
+    name: Month Load Energy
+    address: 66
+    function: holding
+    data_type: uint16
+    scale: 0.1
+    unit: kWh
+    access: read
+
+  - key: month_pv_energy
+    name: Month PV Energy
+    address: 65
+    function: holding
+    data_type: uint16
+    scale: 0.1
+    unit: kWh
+    access: read
+
+  - key: total_active_energy
+    name: Total Active Energy
+    address: 63
+    function: holding
+    data_type: uint32
+    count: 2
+    word_order: big
+    scale: 0.1
+    unit: kWh
+    access: read
+
+  - key: total_battery_charge
+    name: Total Battery Charge
+    address: 72
+    function: holding
+    data_type: uint32
+    count: 2
+    word_order: big
+    scale: 0.1
+    unit: kWh
+    access: read
+
+  - key: total_battery_discharge
+    name: Total Battery Discharge
+    address: 74
+    function: holding
+    data_type: uint32
+    count: 2
+    word_order: big
+    scale: 0.1
+    unit: kWh
+    access: read
+
+  - key: total_grid_export
+    name: Total Grid Export
+    address: 81
+    function: holding
+    data_type: uint32
+    count: 2
+    word_order: big
+    scale: 0.1
+    unit: kWh
+    access: read
+
+  - key: total_load_energy
+    name: Total Load Energy
+    address: 85
+    function: holding
+    data_type: uint32
+    count: 2
+    word_order: big
+    scale: 0.1
+    unit: kWh
+    access: read
+
+  - key: total_pv_energy
+    name: Total PV Energy
+    address: 96
+    function: holding
+    data_type: uint32
+    count: 2
+    word_order: big
+    scale: 0.1
+    unit: kWh
+    access: read
+
+  - key: year_grid_export
+    name: Year Grid Export
+    address: 98
+    function: holding
+    data_type: uint32
+    count: 2
+    word_order: big
+    scale: 0.1
+    unit: kWh
+    access: read
+
+  - key: year_load_energy
+    name: Year Load Energy
+    address: 87
+    function: holding
+    data_type: uint32
+    count: 2
+    word_order: big
+    scale: 0.1
+    unit: kWh
+    access: read
+
+  - key: year_pv_energy
+    name: Year PV Energy
+    address: 68
+    function: holding
+    data_type: uint32
+    count: 2
+    word_order: big
+    scale: 0.1
+    unit: kWh
+    access: read
+
+  - key: rated_power
+    name: Rated Power
+    address: 16
+    function: holding
+    data_type: uint32
+    count: 2
+    word_order: big
+    scale: 0.1
+    unit: W
+    access: read
