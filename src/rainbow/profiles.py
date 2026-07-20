@@ -171,10 +171,16 @@ def _load_register(index: int, register_data: Mapping) -> RegisterDefinition:
 
 def _load_registers(registers_data: list[Mapping]) -> tuple[RegisterDefinition, ...]:
     """Load all register definitions in profile order."""
-    return tuple(
+    registers = tuple(
         _load_register(index, register_data)
         for index, register_data in enumerate(registers_data)
     )
+    seen_keys: set[str] = set()
+    for register in registers:
+        if register.key in seen_keys:
+            raise ProfileError(f"duplicate register key: {register.key}")
+        seen_keys.add(register.key)
+    return registers
 
 
 def build_device_profile(profile_data: object) -> DeviceProfile:

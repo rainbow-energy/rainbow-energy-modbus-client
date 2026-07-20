@@ -284,6 +284,25 @@ def test_build_device_profile_supports_write_register_access():
     assert profile.registers[0].access == "write"
 
 
+def test_build_device_profile_rejects_duplicate_register_keys():
+    """Reject profiles that define the same register key twice."""
+    second_register = deepcopy(_VALID_PROFILE["registers"][0])
+    second_register["address"] = 101
+
+    with pytest.raises(
+        ProfileError,
+        match="duplicate register key: battery_soc",
+    ):
+        load_valid_profile(
+            profile_overrides={
+                "registers": [
+                    deepcopy(_VALID_PROFILE["registers"][0]),
+                    second_register,
+                ]
+            }
+        )
+
+
 def test_load_profile_supports_multi_register_value():
     """Load a value spanning multiple Modbus registers."""
     profile = load_valid_profile(
