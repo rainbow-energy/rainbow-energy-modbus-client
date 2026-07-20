@@ -510,3 +510,137 @@ registers:
         match="register 0 data_type must be a string",
     ):
         load_profile(profile_path)
+
+
+def test_load_profile_rejects_missing_address(tmp_path):
+    profile_path = tmp_path / "missing-address.yaml"
+    profile_path.write_text(
+        """
+manufacturer: Example Energy
+model: Example 8K
+registers:
+  - key: battery_soc
+    name: Battery SOC
+    function: holding
+    data_type: uint16
+    count: 1
+    scale: 1
+    unit: percent
+    access: read
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ProfileError,
+        match="register 0 missing required field: address",
+    ):
+        load_profile(profile_path)
+
+
+def test_load_profile_rejects_non_integer_address(tmp_path):
+    profile_path = tmp_path / "non-integer-address.yaml"
+    profile_path.write_text(
+        """
+manufacturer: Example Energy
+model: Example 8K
+registers:
+  - key: battery_soc
+    name: Battery SOC
+    address: two hundred
+    function: holding
+    data_type: uint16
+    count: 1
+    scale: 1
+    unit: percent
+    access: read
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ProfileError,
+        match="register 0 address must be an integer between 0 and 65535",
+    ):
+        load_profile(profile_path)
+
+
+def test_load_profile_rejects_boolean_address(tmp_path):
+    profile_path = tmp_path / "boolean-address.yaml"
+    profile_path.write_text(
+        """
+manufacturer: Example Energy
+model: Example 8K
+registers:
+  - key: battery_soc
+    name: Battery SOC
+    address: true
+    function: holding
+    data_type: uint16
+    count: 1
+    scale: 1
+    unit: percent
+    access: read
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ProfileError,
+        match="register 0 address must be an integer between 0 and 65535",
+    ):
+        load_profile(profile_path)
+
+
+def test_load_profile_rejects_negative_address(tmp_path):
+    profile_path = tmp_path / "negative-address.yaml"
+    profile_path.write_text(
+        """
+manufacturer: Example Energy
+model: Example 8K
+registers:
+  - key: battery_soc
+    name: Battery SOC
+    address: -1
+    function: holding
+    data_type: uint16
+    count: 1
+    scale: 1
+    unit: percent
+    access: read
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ProfileError,
+        match="register 0 address must be an integer between 0 and 65535",
+    ):
+        load_profile(profile_path)
+
+
+def test_load_profile_rejects_address_above_modbus_limit(tmp_path):
+    profile_path = tmp_path / "large-address.yaml"
+    profile_path.write_text(
+        """
+manufacturer: Example Energy
+model: Example 8K
+registers:
+  - key: battery_soc
+    name: Battery SOC
+    address: 65536
+    function: holding
+    data_type: uint16
+    count: 1
+    scale: 1
+    unit: percent
+    access: read
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ProfileError,
+        match="register 0 address must be an integer between 0 and 65535",
+    ):
+        load_profile(profile_path)

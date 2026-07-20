@@ -55,8 +55,14 @@ def _load_register(index: int, register_data: object) -> RegisterDefinition:
             f"register {index} count must be an integer between 1 and 125"
         )
 
+    if "address" not in register_data:
+        raise ProfileError(f"register {index} missing required field: address")
     address = register_data.get("address")
-    if isinstance(address, int) and address + count - 1 > 65535:
+    if type(address) is not int or not 0 <= address <= 65535:
+        raise ProfileError(
+            f"register {index} address must be an integer between 0 and 65535"
+        )
+    if address + count - 1 > 65535:
         raise ProfileError(f"register {index} range exceeds address 65535")
 
     if "data_type" not in register_data:
