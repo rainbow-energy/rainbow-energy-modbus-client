@@ -34,6 +34,7 @@ class RegisterDefinition:
     unit: str
     access: str
     count: int = 1
+    word_order: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -92,12 +93,28 @@ def _validate_data_type(index: int, register_data: Mapping, count: int) -> None:
         )
 
 
+def _validate_word_order(index: int, register_data: Mapping) -> None:
+    """Require word order for multi-register numeric values."""
+    data_type = register_data.get("data_type")
+    if data_type in {"uint32", "int32", "float32"}:
+        if "word_order" not in register_data:
+            raise ProfileError(f"register {index} data_type {data_type} requires word_order")
+        word_order = register_data.get("word_order")
+        if not isinstance(word_order, str):
+            raise ProfileError(f"register {index} word_order must be a string")
+        if word_order not in {"big", "little"}:
+            raise ProfileError(
+                f"register {index} has unsupported word_order: {word_order}"
+            )
+
+
 def _load_register(index: int, register_data: object) -> RegisterDefinition:
     """Load and validate one register definition."""
     register_mapping = _require_register_mapping(index, register_data)
     count = _validate_count(index, register_mapping)
     _validate_address(index, register_mapping, count)
     _validate_data_type(index, register_mapping, count)
+    _validate_word_order(index, register_mapping)
 
     return RegisterDefinition(**register_mapping)
 

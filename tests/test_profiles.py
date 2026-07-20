@@ -162,6 +162,7 @@ registers:
     function: holding
     data_type: uint32
     count: 2
+    word_order: big
     scale: 0.1
     unit: kWh
     access: read
@@ -172,6 +173,176 @@ registers:
     profile = load_profile(profile_path)
 
     assert profile.registers[0].count == 2
+    assert profile.registers[0].word_order == "big"
+
+
+def test_load_profile_supports_little_word_order(tmp_path):
+    """Load a multi-register value with little word order."""
+    profile_path = tmp_path / "little-word-order.yaml"
+    profile_path.write_text(
+        """
+manufacturer: Example Energy
+model: Example 8K
+registers:
+  - key: total_energy
+    name: Total Energy
+    address: 200
+    function: holding
+    data_type: uint32
+    count: 2
+    word_order: little
+    scale: 0.1
+    unit: kWh
+    access: read
+""",
+        encoding="utf-8",
+    )
+
+    profile = load_profile(profile_path)
+
+    assert profile.registers[0].word_order == "little"
+
+
+def test_load_profile_requires_word_order_for_uint32(tmp_path):
+    """Require word order for unsigned 32-bit values."""
+    profile_path = tmp_path / "missing-word-order.yaml"
+    profile_path.write_text(
+        """
+manufacturer: Example Energy
+model: Example 8K
+registers:
+  - key: total_energy
+    name: Total Energy
+    address: 200
+    function: holding
+    data_type: uint32
+    count: 2
+    scale: 0.1
+    unit: kWh
+    access: read
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ProfileError,
+        match="register 0 data_type uint32 requires word_order",
+    ):
+        load_profile(profile_path)
+
+
+def test_load_profile_requires_word_order_for_int32(tmp_path):
+    """Require word order for signed 32-bit values."""
+    profile_path = tmp_path / "missing-int32-word-order.yaml"
+    profile_path.write_text(
+        """
+manufacturer: Example Energy
+model: Example 8K
+registers:
+  - key: signed_energy
+    name: Signed Energy
+    address: 200
+    function: holding
+    data_type: int32
+    count: 2
+    scale: 0.1
+    unit: kWh
+    access: read
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ProfileError,
+        match="register 0 data_type int32 requires word_order",
+    ):
+        load_profile(profile_path)
+
+
+def test_load_profile_requires_word_order_for_float32(tmp_path):
+    """Require word order for 32-bit floating-point values."""
+    profile_path = tmp_path / "missing-float32-word-order.yaml"
+    profile_path.write_text(
+        """
+manufacturer: Example Energy
+model: Example 8K
+registers:
+  - key: grid_voltage
+    name: Grid Voltage
+    address: 200
+    function: holding
+    data_type: float32
+    count: 2
+    scale: 1
+    unit: V
+    access: read
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ProfileError,
+        match="register 0 data_type float32 requires word_order",
+    ):
+        load_profile(profile_path)
+
+
+def test_load_profile_rejects_non_string_word_order(tmp_path):
+    """Reject a word order that is not a string."""
+    profile_path = tmp_path / "non-string-word-order.yaml"
+    profile_path.write_text(
+        """
+manufacturer: Example Energy
+model: Example 8K
+registers:
+  - key: total_energy
+    name: Total Energy
+    address: 200
+    function: holding
+    data_type: uint32
+    count: 2
+    word_order: []
+    scale: 0.1
+    unit: kWh
+    access: read
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ProfileError,
+        match="register 0 word_order must be a string",
+    ):
+        load_profile(profile_path)
+
+
+def test_load_profile_rejects_unsupported_word_order(tmp_path):
+    """Reject an unsupported word-order value."""
+    profile_path = tmp_path / "unsupported-word-order.yaml"
+    profile_path.write_text(
+        """
+manufacturer: Example Energy
+model: Example 8K
+registers:
+  - key: total_energy
+    name: Total Energy
+    address: 200
+    function: holding
+    data_type: uint32
+    count: 2
+    word_order: middle
+    scale: 0.1
+    unit: kWh
+    access: read
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        ProfileError,
+        match="register 0 has unsupported word_order: middle",
+    ):
+        load_profile(profile_path)
 
 
 def test_load_profile_rejects_zero_register_count(tmp_path):
