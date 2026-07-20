@@ -131,8 +131,8 @@ def test_read_measurement_fetches_and_decodes_input_register():
     assert measurement.unit == "V"
 
 
-def test_read_measurements_fetches_keys_in_order():
-    """Read several profile keys and return measurements in request order."""
+def test_read_measurements_batches_adjacent_registers():
+    """Merge adjacent registers into one Modbus read, preserve key order."""
     profile = DeviceProfile(
         manufacturer="Example Energy",
         model="Example 8K",
@@ -159,7 +159,7 @@ def test_read_measurements_fetches_keys_in_order():
             ),
         ),
     )
-    reader = FakeReader(responses={184: (85,), 183: (523,)})
+    reader = FakeReader(responses={183: (523, 85)})
 
     measurements = read_measurements(
         reader,
@@ -167,7 +167,7 @@ def test_read_measurements_fetches_keys_in_order():
         ("battery_soc", "battery_voltage"),
     )
 
-    assert reader.requests == [("holding", 184, 1), ("holding", 183, 1)]
+    assert reader.requests == [("holding", 183, 2)]
     assert measurements[0] == Measurement(
         key="battery_soc",
         name="Battery SOC",
@@ -176,4 +176,92 @@ def test_read_measurements_fetches_keys_in_order():
     )
     assert measurements[1].key == "battery_voltage"
     assert measurements[1].value == pytest.approx(52.3)
+
+
+def test_read_measurements_batches_registers_within_gap():
+    """Merge same-function registers when the unused gap is small."""
+    profile = DeviceProfile(
+        manufacturer="Example Energy",
+        model="Example 8K",
+        registers=(
+            RegisterDefinition(
+                key="grid_power",
+                name="Grid Power",
+                address=100,
+                function="holding",
+                data_type="int16",
+                scale=1,
+                unit="W",
+                access="read",
+            ),
+            RegisterDefinition(
+                key="load_power",
+                name="Load Power",
+                address=110,
+                function="holding",
+                data_type="int16",
+                scale=1,
+                unit="W",
+                access="read",
+            ),
+        ),
+    )
+    reader = FakeReader(
+        responses={100: (10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20)},
+    )
+
+    measurements = read_measurements(
+        reader,
+        profile,
+        ("grid_power", "load_power"),
+    )
+
+    assert reader.requests == [("holding", 100, 11)]
+    assert measurements == (
+        Measurement(key="grid_power", name="Grid Power", value=10, unit="W"),
+        Measurement(key="load_power", name="Load Power", value=20, unit="W"),
+    )
+
+
+def test_read_measurements_keeps_large_gaps_separate():
+    """Do not merge registers when the unused gap exceeds the batch limit."""
+    profile = DeviceProfile(
+        manufacturer="Example Energy",
+        model="Example 8K",
+        registers=(
+            RegisterDefinition(
+                key="grid_power",
+                name="Grid Power",
+                address=100,
+                function="holding",
+                data_type="int16",
+                scale=1,
+                unit="W",
+                access="read",
+            ),
+            RegisterDefinition(
+                key="load_power",
+                name="Load Power",
+                address=118,
+                function="holding",
+                data_type="int16",
+                scale=1,
+                unit="W",
+                access="read",
+            ),
+        ),
+    )
+    reader = FakeReader(responses={100: (10,), 118: (20,)})
+
+    measurements = read_measurements(
+        reader,
+        profile,
+        ("grid_power", "load_power"),
+    )
+
+    assert reader.requests == [("holding", 100, 1), ("holding", 118, 1)]
+    assert measurements == (
+        Measurement(key="grid_power", name="Grid Power", value=10, unit="W"),
+        Measurement(key="load_power", name="Load Power", value=20, unit="W"),
+    )
 
