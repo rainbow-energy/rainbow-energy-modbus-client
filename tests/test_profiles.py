@@ -4,12 +4,11 @@ from copy import deepcopy
 from unittest.mock import mock_open, patch
 
 import pytest
-import yaml
 
 from rainbow.profiles import (
     DeviceProfile,
     ProfileError,
-    RegisterDefinition,
+    build_device_profile,
     load_profile,
 )
 
@@ -33,14 +32,28 @@ _VALID_PROFILE = {
 }
 
 
-def load_profile_from_yaml(yaml_text):
-    """Load a profile from in-memory YAML using a fixed filename."""
-    with patch("pathlib.Path.open", mock_open(read_data=yaml_text)):
-        return load_profile("profile.yaml")
+def test_load_profile_from_yaml():
+    """Load and parse profile data from a YAML file."""
+    yaml_text = """
+manufacturer: Example Energy
+model: Example 8K
+registers: []
+"""
+    profile_file = mock_open(read_data=yaml_text)
+
+    with patch("pathlib.Path.open", profile_file):
+        profile = load_profile("profile.yaml")
+
+    profile_file.assert_called_once_with(encoding="utf-8")
+    assert profile == DeviceProfile(
+        manufacturer="Example Energy",
+        model="Example 8K",
+        registers=(),
+    )
 
 
 def load_valid_profile(*, profile_overrides=None, register_overrides=None):
-    """Load a copy of the valid profile with selected values overridden."""
+    """Build a copy of the valid profile with selected values overridden."""
     profile_data = deepcopy(_VALID_PROFILE)
 
     for key, value in (profile_overrides or {}).items():
@@ -57,47 +70,13 @@ def load_valid_profile(*, profile_overrides=None, register_overrides=None):
             else:
                 register_data[key] = value
 
-    return load_profile_from_yaml(yaml.safe_dump(profile_data))
+    return build_device_profile(profile_data)
 
 
-def test_load_profile_from_yaml():
-    """Load a complete device profile from YAML."""
-    profile = load_valid_profile()
-
-    assert profile == DeviceProfile(
-        manufacturer="Example Energy",
-        model="Example 8K",
-        registers=(
-            RegisterDefinition(
-                key="battery_soc",
-                name="Battery SOC",
-                address=100,
-                function="holding",
-                data_type="uint16",
-                scale=1,
-                unit="percent",
-                access="read",
-            ),
-        ),
-    )
-
-
-def test_load_profile_wraps_invalid_yaml():
-    """Wrap malformed YAML in a profile error."""
-    yaml_text = "manufacturer: [invalid"
-
-    with pytest.raises(ProfileError, match="Invalid YAML") as error:
-        load_profile_from_yaml(yaml_text)
-
-    assert error.value.__cause__ is not None
-
-
-def test_load_profile_rejects_empty_yaml():
-    """Reject an empty YAML document."""
-    yaml_text = ""
-
+def test_build_device_profile_rejects_non_mapping():
+    """Reject parsed profile data that is not a mapping."""
     with pytest.raises(ProfileError, match="Profile must be a YAML mapping"):
-        load_profile_from_yaml(yaml_text)
+        build_device_profile(None)
 
 
 def test_load_profile_rejects_missing_manufacturer():

@@ -147,7 +147,7 @@ def _require_list(profile_data: Mapping, field: str) -> list[object]:
     return value
 
 
-def _build_device_profile(profile_data: object) -> DeviceProfile:
+def build_device_profile(profile_data: object) -> DeviceProfile:
     """Validate parsed profile data and build a device profile."""
     if not isinstance(profile_data, Mapping):
         raise ProfileError("Profile must be a YAML mapping")
@@ -171,4 +171,4 @@ def load_profile(path: str | Path) -> DeviceProfile:
     except yaml.YAMLError as error:
         raise ProfileError(f"Invalid YAML: {error}") from error
 
-    return _build_device_profile(profile_data)
+    return build_device_profile(profile_data)
