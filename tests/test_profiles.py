@@ -130,6 +130,25 @@ def test_load_profile_rejects_non_mapping_register():
         load_valid_profile(profile_overrides={"registers": ["battery_soc"]})
 
 
+def test_build_device_profile_rejects_missing_register_key():
+    """Reject a register definition without a key."""
+    with pytest.raises(
+        ProfileError,
+        match="register 0 missing required field: key",
+    ):
+        load_valid_profile(register_overrides={"key": _DELETE})
+
+
+@pytest.mark.parametrize("key", [None, 42, "", "   "])
+def test_build_device_profile_rejects_invalid_register_key(key):
+    """Reject a register definition with a null, non-string, or blank key."""
+    with pytest.raises(
+        ProfileError,
+        match="register 0 key must be a non-empty string",
+    ):
+        load_valid_profile(register_overrides={"key": key})
+
+
 def test_load_profile_supports_multi_register_value():
     """Load a value spanning multiple Modbus registers."""
     profile = load_valid_profile(

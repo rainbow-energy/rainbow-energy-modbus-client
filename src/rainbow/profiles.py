@@ -53,6 +53,15 @@ def _require_register_mapping(index: int, register_data: object) -> Mapping:
     return register_data
 
 
+def _validate_key(index: int, register_data: Mapping) -> None:
+    """Require a register key."""
+    if "key" not in register_data:
+        raise ProfileError(f"register {index} missing required field: key")
+    key = register_data["key"]
+    if not isinstance(key, str) or not key.strip():
+        raise ProfileError(f"register {index} key must be a non-empty string")
+
+
 def _validate_count(index: int, register_data: Mapping) -> int:
     """Return a valid Modbus register count."""
     count = register_data.get("count", 1)
@@ -111,6 +120,7 @@ def _validate_word_order(index: int, register_data: Mapping) -> None:
 def _load_register(index: int, register_data: object) -> RegisterDefinition:
     """Load and validate one register definition."""
     register_mapping = _require_register_mapping(index, register_data)
+    _validate_key(index, register_mapping)
     count = _validate_count(index, register_mapping)
     _validate_address(index, register_mapping, count)
     _validate_data_type(index, register_mapping, count)
