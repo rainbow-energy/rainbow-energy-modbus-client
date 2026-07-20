@@ -1,5 +1,6 @@
 """Fetch and decode measurements using a device profile."""
 
+from collections.abc import Sequence
 from typing import Protocol
 
 from rainbow.decode import Measurement, decode_register
@@ -36,3 +37,12 @@ def read_measurement(
     else:
         data = reader.read_holding_registers(definition.address, definition.count)
     return decode_register(definition, data.values)
+
+
+def read_measurements(
+    reader: RegisterReader,
+    profile: DeviceProfile,
+    keys: Sequence[str],
+) -> tuple[Measurement, ...]:
+    """Read several named registers and return measurements in key order."""
+    return tuple(read_measurement(reader, profile, key) for key in keys)
