@@ -7,6 +7,7 @@ adapter and returns structured data.
 
 ```bash
 make sync
+make install-hooks
 make build
 make test
 make lint

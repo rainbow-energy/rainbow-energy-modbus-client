@@ -34,6 +34,7 @@
 ## Commands
 
 - `make sync` — synchronize locked dependencies.
+- `make install-hooks` — install repository Git hooks.
 - `make build` — build the development Docker image.
 - `make test` — build the image and run tests in it.
 - `make lint` — run Ruff.
