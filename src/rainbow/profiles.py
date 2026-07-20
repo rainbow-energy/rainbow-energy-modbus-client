@@ -45,16 +45,22 @@ class DeviceProfile:
     registers: tuple[RegisterDefinition, ...]
 
 
-def _load_register(index: int, register_data: object) -> RegisterDefinition:
+def _require_register_mapping(index: int, register_data: object) -> Mapping:
     if not isinstance(register_data, Mapping):
         raise ProfileError(f"register {index} must be a mapping")
+    return register_data
 
+
+def _validate_count(index: int, register_data: Mapping) -> int:
     count = register_data.get("count", 1)
     if type(count) is not int or not 1 <= count <= 125:
         raise ProfileError(
             f"register {index} count must be an integer between 1 and 125"
         )
+    return count
 
+
+def _validate_address(index: int, register_data: Mapping, count: int) -> None:
     if "address" not in register_data:
         raise ProfileError(f"register {index} missing required field: address")
     address = register_data.get("address")
@@ -65,6 +71,8 @@ def _load_register(index: int, register_data: object) -> RegisterDefinition:
     if address + count - 1 > 65535:
         raise ProfileError(f"register {index} range exceeds address 65535")
 
+
+def _validate_data_type(index: int, register_data: Mapping, count: int) -> None:
     if "data_type" not in register_data:
         raise ProfileError(f"register {index} missing required field: data_type")
     data_type = register_data.get("data_type")
@@ -79,7 +87,14 @@ def _load_register(index: int, register_data: object) -> RegisterDefinition:
             f"register {index} data_type {data_type} requires count {required_count}"
         )
 
-    return RegisterDefinition(**register_data)
+
+def _load_register(index: int, register_data: object) -> RegisterDefinition:
+    register_mapping = _require_register_mapping(index, register_data)
+    count = _validate_count(index, register_mapping)
+    _validate_address(index, register_mapping, count)
+    _validate_data_type(index, register_mapping, count)
+
+    return RegisterDefinition(**register_mapping)
 
 
 def _load_registers(registers_data: list[object]) -> tuple[RegisterDefinition, ...]:
