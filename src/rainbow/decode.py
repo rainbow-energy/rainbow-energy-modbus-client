@@ -56,6 +56,8 @@ def decode_register(
             f"Expected {definition.count} register values for {definition.key}, "
             f"received {len(values)}"
         )
+    if definition.bitmask is not None:
+        values = tuple(value & definition.bitmask for value in values)
     return Measurement(
         key=definition.key,
         name=definition.name,

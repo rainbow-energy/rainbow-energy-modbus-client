@@ -334,6 +334,54 @@ def test_build_device_profile_rejects_overlapping_register_addresses():
         )
 
 
+def test_build_device_profile_allows_same_address_with_disjoint_bitmasks():
+    """Allow two metrics to share an address when their bitmasks do not overlap."""
+    first = deepcopy(_VALID_PROFILE["registers"][0])
+    first["key"] = "prog1_charge"
+    first["name"] = "Prog1 Charge"
+    first["bitmask"] = 0x03
+    first["unit"] = ""
+    second = deepcopy(_VALID_PROFILE["registers"][0])
+    second["key"] = "prog1_mode"
+    second["name"] = "Prog1 Mode"
+    second["bitmask"] = 0x1C
+    second["unit"] = ""
+
+    profile = load_valid_profile(profile_overrides={"registers": [first, second]})
+
+    assert [register.key for register in profile.registers] == [
+        "prog1_charge",
+        "prog1_mode",
+    ]
+
+
+def test_build_device_profile_rejects_overlapping_bitmasks():
+    """Reject shared addresses when bitmasks claim the same bits."""
+    first = deepcopy(_VALID_PROFILE["registers"][0])
+    first["key"] = "prog1_charge"
+    first["name"] = "Prog1 Charge"
+    first["bitmask"] = 0x03
+    first["unit"] = ""
+    second = deepcopy(_VALID_PROFILE["registers"][0])
+    second["key"] = "prog1_mode"
+    second["name"] = "Prog1 Mode"
+    second["bitmask"] = 0x01
+    second["unit"] = ""
+
+    with pytest.raises(
+        ProfileError,
+        match="overlapping register addresses: prog1_charge and prog1_mode",
+    ):
+        load_valid_profile(profile_overrides={"registers": [first, second]})
+
+
+def test_build_device_profile_supports_bitmask():
+    """Allow a register definition to select bits within a word."""
+    profile = load_valid_profile(register_overrides={"bitmask": 0x03})
+
+    assert profile.registers[0].bitmask == 0x03
+
+
 def test_load_profile_supports_multi_register_value():
     """Load a value spanning multiple Modbus registers."""
     profile = load_valid_profile(

@@ -69,6 +69,11 @@ _REGISTER_SCHEMA = {
             "minimum": 1,
             "maximum": 125,
         },
+        "bitmask": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 65535,
+        },
     },
     "allOf": [
         {
@@ -137,6 +142,7 @@ class RegisterDefinition:
     access: str
     count: int = 1
     word_order: str | None = None
+    bitmask: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -176,7 +182,7 @@ def _load_registers(registers_data: list[Mapping]) -> tuple[RegisterDefinition, 
         for index, register_data in enumerate(registers_data)
     )
     seen_keys: set[str] = set()
-    occupied: dict[tuple[str, int], str] = {}
+    occupied: dict[tuple[str, int], list[tuple[str, int | None]]] = {}
     for register in registers:
         if register.key in seen_keys:
             raise ProfileError(f"duplicate register key: {register.key}")
@@ -184,12 +190,18 @@ def _load_registers(registers_data: list[Mapping]) -> tuple[RegisterDefinition, 
         for offset in range(register.count):
             address = register.address + offset
             space = (register.function, address)
-            existing = occupied.get(space)
-            if existing is not None:
-                raise ProfileError(
-                    f"overlapping register addresses: {existing} and {register.key}"
-                )
-            occupied[space] = register.key
+            claims = occupied.setdefault(space, [])
+            for existing_key, existing_mask in claims:
+                if (
+                    register.bitmask is None
+                    or existing_mask is None
+                    or register.bitmask & existing_mask
+                ):
+                    raise ProfileError(
+                        "overlapping register addresses: "
+                        f"{existing_key} and {register.key}"
+                    )
+            claims.append((register.key, register.bitmask))
     return registers
 
 

@@ -73,6 +73,30 @@ def test_decode_int16_signed_value():
     )
 
 
+def test_decode_applies_bitmask():
+    """Keep only the selected bits before scaling."""
+    definition = RegisterDefinition(
+        key="prog1_charge",
+        name="Prog1 Charge",
+        address=274,
+        function="holding",
+        data_type="uint16",
+        scale=1,
+        unit="",
+        access="read",
+        bitmask=0x03,
+    )
+
+    measurement = decode_register(definition, values=(0x1D,))
+
+    assert measurement == Measurement(
+        key="prog1_charge",
+        name="Prog1 Charge",
+        value=1,
+        unit="",
+    )
+
+
 def test_decode_register_rejects_wrong_value_count():
     """Reject raw values that do not match the register count."""
     definition = RegisterDefinition(
