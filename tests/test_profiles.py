@@ -215,6 +215,30 @@ def test_build_device_profile_supports_input_register_function():
     assert profile.registers[0].function == "input"
 
 
+@pytest.mark.parametrize(
+    ("scale", "message"),
+    [
+        (_DELETE, "profile registers.0: .*scale.*required property"),
+        (None, "profile registers.0.scale: .*not of type 'number'"),
+        ("one", "profile registers.0.scale: .*not of type 'number'"),
+        (True, "profile registers.0.scale: .*not of type 'number'"),
+        (0, "profile registers.0.scale: .*should not be valid"),
+    ],
+)
+def test_build_device_profile_rejects_invalid_register_scale(scale, message):
+    """Reject a missing, non-numeric, boolean, or zero scale."""
+    with pytest.raises(ProfileError, match=message):
+        load_valid_profile(register_overrides={"scale": scale})
+
+
+@pytest.mark.parametrize("scale", [0.1, -1])
+def test_build_device_profile_supports_nonzero_register_scale(scale):
+    """Allow positive decimal and negative register scales."""
+    profile = load_valid_profile(register_overrides={"scale": scale})
+
+    assert profile.registers[0].scale == scale
+
+
 def test_load_profile_supports_multi_register_value():
     """Load a value spanning multiple Modbus registers."""
     profile = load_valid_profile(
