@@ -1,5 +1,6 @@
 """Decode raw Modbus register values into typed measurements."""
 
+import math
 import struct
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -40,7 +41,12 @@ def _raw_value(definition: RegisterDefinition, values: Sequence[int]) -> float |
         return _decode_string(values)
     if definition.data_type == "float32":
         high, low = _ordered_words(definition, values)
-        return struct.unpack(">f", struct.pack(">HH", high, low))[0]
+        value = struct.unpack(">f", struct.pack(">HH", high, low))[0]
+        if not math.isfinite(value):
+            raise DecodeError(
+                f"non-finite float32 value for {definition.key}: {value}"
+            )
+        return value
     if definition.data_type in {"uint32", "int32"}:
         high, low = _ordered_words(definition, values)
         raw = (high << 16) | low

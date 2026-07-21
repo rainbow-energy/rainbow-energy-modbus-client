@@ -290,3 +290,22 @@ def test_decode_float32_big_endian():
     assert measurement.name == "Example Float"
     assert measurement.value == pytest.approx(1.0)
     assert measurement.unit == ""
+
+
+def test_decode_float32_rejects_nan():
+    """Reject IEEE 754 float32 NaN rather than returning it as a measurement."""
+    definition = RegisterDefinition(
+        key="example_float",
+        name="Example Float",
+        address=200,
+        function="holding",
+        data_type="float32",
+        scale=1,
+        unit="",
+        access="read",
+        count=2,
+        word_order="big",
+    )
+
+    with pytest.raises(DecodeError, match="non-finite float32"):
+        decode_register(definition, values=(0x7FC0, 0x0000))
