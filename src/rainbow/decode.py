@@ -169,6 +169,36 @@ def _raw_value(definition: RegisterDefinition, values: Sequence[int]) -> float |
             raise DecodeError(f"unsupported data_type: {definition.data_type}")
 
 
+def _numeric_source(
+    definition: RegisterDefinition,
+    source_values: Mapping[str, float | int],
+    key: str,
+) -> float | int:
+    """Return one math source value, rejecting missing or non-numeric inputs."""
+    try:
+        raw = source_values[key]
+    except KeyError as error:
+        raise DecodeError(
+            f"missing source value {key} for {definition.key}"
+        ) from error
+    if isinstance(raw, bool) or not isinstance(raw, (int, float)):
+        raise DecodeError(
+            f"non-numeric source value {key} for {definition.key}"
+        )
+    return raw
+
+
+def _finalize_math_total(
+    definition: RegisterDefinition, total: float
+) -> float | int:
+    """Apply absolute/no-negative rules and prefer ints for whole numbers."""
+    if definition.absolute:
+        total = abs(total)
+    if definition.no_negative:
+        total = max(total, 0)
+    return int(total) if total == int(total) else total
+
+
 def decode_math(
     definition: RegisterDefinition,
     source_values: Mapping[str, float | int],
@@ -176,28 +206,14 @@ def decode_math(
     """Combine decoded source values into one math measurement."""
     if definition.sources is None:
         raise DecodeError(f"math register {definition.key} has no sources")
-    total = 0.0
-    for source in definition.sources:
-        try:
-            raw = source_values[source.key]
-        except KeyError as error:
-            raise DecodeError(
-                f"missing source value {source.key} for {definition.key}"
-            ) from error
-        if isinstance(raw, bool) or not isinstance(raw, (int, float)):
-            raise DecodeError(
-                f"non-numeric source value {source.key} for {definition.key}"
-            )
-        total += raw * source.factor
-    if definition.absolute and total < 0:
-        total = -total
-    if definition.no_negative and total < 0:
-        total = 0
-    value: float | int = int(total) if total == int(total) else total
+    total = sum(
+        _numeric_source(definition, source_values, source.key) * source.factor
+        for source in definition.sources
+    )
     return Measurement(
         key=definition.key,
         name=definition.name,
-        value=value,
+        value=_finalize_math_total(definition, total),
         unit=definition.unit,
     )
 
