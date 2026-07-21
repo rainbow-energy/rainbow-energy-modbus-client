@@ -424,6 +424,27 @@ def test_build_device_profile_supports_offset():
     assert profile.registers[0].offset == 100
 
 
+def test_build_device_profile_supports_options():
+    """Allow a register definition to map integer values to labels."""
+    profile = load_valid_profile(
+        register_overrides={
+            "options": {
+                0: "No Grid or Gen",
+                1: "Allow Grid",
+                2: "Allow Gen",
+                3: "Allow Grid & Gen",
+            }
+        }
+    )
+
+    assert profile.registers[0].options == {
+        0: "No Grid or Gen",
+        1: "Allow Grid",
+        2: "Allow Gen",
+        3: "Allow Grid & Gen",
+    }
+
+
 def test_load_profile_supports_multi_register_value():
     """Load a value spanning multiple Modbus registers."""
     profile = load_valid_profile(
@@ -578,6 +599,40 @@ def test_build_device_profile_rejects_offset_on_string():
                 "data_type": "string",
                 "count": 5,
                 "offset": 100,
+            }
+        )
+
+
+def test_build_device_profile_rejects_options_on_string():
+    """Reject options on string registers where they have no meaning."""
+    with pytest.raises(ProfileError):
+        load_valid_profile(
+            register_overrides={
+                "data_type": "string",
+                "count": 5,
+                "options": {0: "off", 1: "on"},
+            }
+        )
+
+
+def test_build_device_profile_rejects_options_with_non_unit_scale():
+    """Reject options when scale is not 1."""
+    with pytest.raises(ProfileError, match="profile registers.0.scale: "):
+        load_valid_profile(
+            register_overrides={
+                "scale": 0.1,
+                "options": {0: "off", 1: "on"},
+            }
+        )
+
+
+def test_build_device_profile_rejects_options_with_offset():
+    """Reject options combined with an engineering offset."""
+    with pytest.raises(ProfileError):
+        load_valid_profile(
+            register_overrides={
+                "offset": 100,
+                "options": {0: "off", 1: "on"},
             }
         )
 

@@ -90,6 +90,80 @@ def test_decode_applies_offset_after_scale():
     assert measurement.unit == "°C"
 
 
+def test_decode_applies_options():
+    """Map a decoded integer to its options label."""
+    definition = RegisterDefinition(
+        key="prog1_charge",
+        name="Prog1 Charge",
+        address=172,
+        function="holding",
+        data_type="uint16",
+        scale=1,
+        unit="",
+        access="read",
+        bitmask=0x03,
+        options={
+            0: "No Grid or Gen",
+            1: "Allow Grid",
+            2: "Allow Gen",
+            3: "Allow Grid & Gen",
+        },
+    )
+
+    measurement = decode_register(definition, values=(0x11,))
+
+    assert measurement == Measurement(
+        key="prog1_charge",
+        name="Prog1 Charge",
+        value="Allow Grid",
+        unit="",
+    )
+
+
+def test_decode_rejects_unknown_option():
+    """Reject a decoded value that is not in the options map."""
+    definition = RegisterDefinition(
+        key="prog1_charge",
+        name="Prog1 Charge",
+        address=172,
+        function="holding",
+        data_type="uint16",
+        scale=1,
+        unit="",
+        access="read",
+        options={
+            0: "No Grid or Gen",
+            1: "Allow Grid",
+        },
+    )
+
+    with pytest.raises(DecodeError, match="unknown option 2 for prog1_charge"):
+        decode_register(definition, values=(2,))
+
+
+def test_decode_rejects_options_on_non_integer_value():
+    """Reject options when the decoded raw value is not an integer."""
+    definition = RegisterDefinition(
+        key="status",
+        name="Status",
+        address=10,
+        function="holding",
+        data_type="float32",
+        scale=1,
+        unit="",
+        access="read",
+        count=2,
+        word_order="big",
+        options={0: "off", 1: "on"},
+    )
+
+    with pytest.raises(
+        DecodeError,
+        match="options require an integer value for status",
+    ):
+        decode_register(definition, values=(16256, 0))
+
+
 def test_decode_int16_signed_value():
     """Decode a signed 16-bit register as two's complement."""
     definition = RegisterDefinition(

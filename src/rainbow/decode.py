@@ -76,8 +76,19 @@ def decode_register(
     if definition.bitmask is not None:
         values = tuple(value & definition.bitmask for value in values)
     raw = _raw_value(definition, values)
-    if isinstance(raw, str):
-        value: float | int | str = raw
+    if definition.options is not None:
+        if not isinstance(raw, int):
+            raise DecodeError(
+                f"options require an integer value for {definition.key}"
+            )
+        try:
+            value: float | int | str = definition.options[raw]
+        except KeyError as error:
+            raise DecodeError(
+                f"unknown option {raw} for {definition.key}"
+            ) from error
+    elif isinstance(raw, str):
+        value = raw
     else:
         value = raw * definition.scale
         if definition.offset is not None:

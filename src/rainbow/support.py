@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from rainbow.decode import decode_register
-from rainbow.profiles import DeviceProfile, ProfileError, load_profile
+from rainbow.profiles import DeviceProfile, ProfileError, RegisterDefinition, load_profile
 
 SUPPORTED_FUNCTIONS = frozenset({"holding", "input"})
 SUPPORTED_DATA_TYPES = frozenset({"uint16", "int16", "uint32", "int32", "float32", "string"})
@@ -20,6 +20,14 @@ class UnsupportedFeature:
 
     key: str
     reason: str
+
+
+def _probe_values(register: RegisterDefinition) -> tuple[int, ...]:
+    """Build synthetic register words that the decoder can accept."""
+    if register.options:
+        probe = next(iter(register.options))
+        return (probe,) + (0,) * (register.count - 1)
+    return (0,) * register.count
 
 
 def check_profile_support(profile: DeviceProfile) -> tuple[UnsupportedFeature, ...]:
@@ -43,7 +51,7 @@ def check_profile_support(profile: DeviceProfile) -> tuple[UnsupportedFeature, .
             )
             continue
         try:
-            decode_register(register, (0,) * register.count)
+            decode_register(register, _probe_values(register))
         except Exception as error:  # noqa: BLE001 - report any decode failure
             issues.append(
                 UnsupportedFeature(

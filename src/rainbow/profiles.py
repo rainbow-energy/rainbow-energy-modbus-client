@@ -77,6 +77,11 @@ _REGISTER_SCHEMA = {
         "offset": {
             "type": "number",
         },
+        "options": {
+            "type": "object",
+            "minProperties": 1,
+            "additionalProperties": _NON_EMPTY_STRING_SCHEMA,
+        },
     },
     "allOf": [
         {
@@ -130,10 +135,18 @@ _REGISTER_SCHEMA = {
                         {"required": ["bitmask"]},
                         {"required": ["word_order"]},
                         {"required": ["offset"]},
+                        {"required": ["options"]},
                     ]
                 },
             },
-        }
+        },
+        {
+            "if": {"required": ["options"]},
+            "then": {
+                "properties": {"scale": {"const": 1}},
+                "not": {"required": ["offset"]},
+            },
+        },
     ],
 }
 _PROFILE_VALIDATOR = Draft202012Validator(
@@ -175,6 +188,7 @@ class RegisterDefinition:
     word_order: str | None = None
     bitmask: int | None = None
     offset: float | None = None
+    options: dict[int, str] | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -204,7 +218,12 @@ def _validate_register_range(index: int, register_data: Mapping) -> None:
 def _load_register(index: int, register_data: Mapping) -> RegisterDefinition:
     """Load and validate one register definition."""
     _validate_register_range(index, register_data)
-    return RegisterDefinition(**register_data)
+    data = dict(register_data)
+    if "options" in data:
+        data["options"] = {
+            int(key): value for key, value in data["options"].items()
+        }
+    return RegisterDefinition(**data)
 
 
 def _load_registers(registers_data: list[Mapping]) -> tuple[RegisterDefinition, ...]:

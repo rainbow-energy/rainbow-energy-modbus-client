@@ -1,8 +1,9 @@
 # SunSynk / Deye single-phase hybrid register map for SYNK-8K-SG05LP1.
 # SunSynk single-phase register definitions (addresses and scales).
-# Omitted for now: enum/option labels, binary on/off decode, math sensors,
+# Omitted for now: binary on/off decode, math sensors,
 # non-contiguous multi-register values, and overlapping AUX aliases.
-# Bitmasked settings are promoted as raw masked integers until options land.
+# Bitmasked settings remain raw masked integers until binary on/off decode.
+# Protocol stays numeric until a version-string decode exists.
 manufacturer: Sunsynk
 model: SYNK-8K-SG05LP1
 registers:
@@ -543,6 +544,16 @@ registers:
     scale: 1
     unit: ""
     access: read
+    options:
+      2: String Inverter
+      3: Single-phase hybrid
+      4: Micro-inverter
+      5: Low-voltage three-phase hybrid
+      6: High-voltage three-phase hybrid
+      0x200: Single-phase LV hybrid (3x MTTP)
+      0x103: Single-phase hybrid
+      0x601: High-voltage three-phase hybrid 6-15kW
+      0x602: High-voltage three-phase hybrid 20-50kW
 
   - key: protocol
     name: Protocol
@@ -561,6 +572,13 @@ registers:
     scale: 1
     unit: ""
     access: read
+    options:
+      0: standby
+      1: selfcheck
+      2: ok
+      3: alarm
+      4: fault
+      5: activating
 
   - key: grid_connected
     name: Grid Connected

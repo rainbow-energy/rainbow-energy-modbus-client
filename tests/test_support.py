@@ -118,6 +118,34 @@ def test_check_profile_support_accepts_supported_registers():
     assert check_profile_support(profile) == ()
 
 
+def test_check_profile_support_accepts_options_without_zero():
+    """Probe an options register using a defined key, not always zero."""
+    profile = build_device_profile(
+        {
+            "manufacturer": "Example Energy",
+            "model": "Example 8K",
+            "registers": [
+                {
+                    "key": "device_type",
+                    "name": "Device Type",
+                    "address": 0,
+                    "function": "holding",
+                    "data_type": "uint16",
+                    "scale": 1,
+                    "unit": "",
+                    "access": "read",
+                    "options": {
+                        2: "Single Phase Inverter",
+                        3: "Micro Inverter",
+                    },
+                }
+            ],
+        }
+    )
+
+    assert check_profile_support(profile) == ()
+
+
 def test_check_profile_script_reports_unsupported_features(tmp_path, capsys):
     """Print unsupported features and exit non-zero for a decodable profile."""
     profile_path = tmp_path / "bad.yaml"
