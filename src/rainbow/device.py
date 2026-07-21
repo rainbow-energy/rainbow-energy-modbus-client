@@ -1,6 +1,6 @@
 """Fetch and decode measurements using a device profile."""
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -31,6 +31,11 @@ class _RegisterBatch:
     function: str
     start_address: int
     count: int
+
+    @property
+    def end_address(self) -> int:
+        """Return the last Modbus address covered by this batch."""
+        return self.start_address + self.count - 1
 
 
 def _lookup_register(profile: DeviceProfile, key: str) -> RegisterDefinition:
@@ -71,6 +76,35 @@ def _leaf_definitions(
     return tuple(leaves.values())
 
 
+def _definition_end(definition: RegisterDefinition) -> int:
+    """Return the last address covered by one leaf definition."""
+    assert definition.address is not None
+    return definition.address + definition.count - 1
+
+
+def _can_merge(batch: _RegisterBatch, definition: RegisterDefinition) -> bool:
+    """Return whether definition can extend an existing batch."""
+    assert definition.address is not None
+    assert definition.function is not None
+    merged_count = _definition_end(definition) - batch.start_address + 1
+    return (
+        definition.function == batch.function
+        and definition.address <= batch.end_address + 1 + _MAX_BATCH_GAP
+        and merged_count <= _MAX_BATCH_COUNT
+    )
+
+
+def _extend_batch(
+    batch: _RegisterBatch, definition: RegisterDefinition
+) -> _RegisterBatch:
+    """Grow a batch so it ends at the definition's final address."""
+    return _RegisterBatch(
+        function=batch.function,
+        start_address=batch.start_address,
+        count=_definition_end(definition) - batch.start_address + 1,
+    )
+
+
 def _plan_batches(definitions: Sequence[RegisterDefinition]) -> tuple[_RegisterBatch, ...]:
     """Merge nearby same-function registers into contiguous read batches."""
     ordered = sorted(
@@ -81,22 +115,9 @@ def _plan_batches(definitions: Sequence[RegisterDefinition]) -> tuple[_RegisterB
     for definition in ordered:
         assert definition.address is not None
         assert definition.function is not None
-        end_address = definition.address + definition.count - 1
-        if batches:
-            current = batches[-1]
-            current_end = current.start_address + current.count - 1
-            merged_count = end_address - current.start_address + 1
-            if (
-                definition.function == current.function
-                and definition.address <= current_end + 1 + _MAX_BATCH_GAP
-                and merged_count <= _MAX_BATCH_COUNT
-            ):
-                batches[-1] = _RegisterBatch(
-                    function=current.function,
-                    start_address=current.start_address,
-                    count=merged_count,
-                )
-                continue
+        if batches and _can_merge(batches[-1], definition):
+            batches[-1] = _extend_batch(batches[-1], definition)
+            continue
         batches.append(
             _RegisterBatch(
                 function=definition.function,
@@ -114,7 +135,7 @@ def _decode_leaf(
     """Decode one leaf register from batched Modbus values."""
     assert definition.address is not None
     assert definition.function is not None
-    end_address = definition.address + definition.count - 1
+    end_address = _definition_end(definition)
     for (function, start_address), values in batch_values.items():
         batch_end = start_address + len(values) - 1
         if (
@@ -126,6 +147,29 @@ def _decode_leaf(
             slice_values = values[offset : offset + definition.count]
             return decode_register(definition, slice_values)
     raise LookupError(f"no batch covered register {definition.key}")
+
+
+def _numeric_source_values(
+    decoded: Mapping[str, Measurement],
+) -> dict[str, float | int]:
+    """Collect numeric leaf values for math measurements."""
+    return {
+        key: measurement.value
+        for key, measurement in decoded.items()
+        if isinstance(measurement.value, (int, float))
+        and not isinstance(measurement.value, bool)
+    }
+
+
+def _measurement_for(
+    definition: RegisterDefinition,
+    decoded: Mapping[str, Measurement],
+    source_values: Mapping[str, float | int],
+) -> Measurement:
+    """Return a leaf or math measurement for one requested definition."""
+    if definition.sources is None:
+        return decoded[definition.key]
+    return decode_math(definition, source_values)
 
 
 def read_measurement(
@@ -154,20 +198,9 @@ def read_measurements(
         ).values
         for batch in _plan_batches(leaves)
     }
-
-    decoded: dict[str, Measurement] = {
-        leaf.key: _decode_leaf(leaf, batch_values) for leaf in leaves
-    }
-    source_values = {
-        key: measurement.value
-        for key, measurement in decoded.items()
-        if isinstance(measurement.value, (int, float)) and not isinstance(measurement.value, bool)
-    }
-
-    measurements: list[Measurement] = []
-    for definition in definitions:
-        if definition.sources is None:
-            measurements.append(decoded[definition.key])
-        else:
-            measurements.append(decode_math(definition, source_values))
-    return tuple(measurements)
+    decoded = {leaf.key: _decode_leaf(leaf, batch_values) for leaf in leaves}
+    source_values = _numeric_source_values(decoded)
+    return tuple(
+        _measurement_for(definition, decoded, source_values)
+        for definition in definitions
+    )
