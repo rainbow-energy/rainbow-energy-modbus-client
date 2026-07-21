@@ -69,6 +69,46 @@ def test_decode_protocol_version_bounds():
     assert decode_register(definition, values=(0xFFFF,)).value == "255.255"
 
 
+def test_decode_time_as_clock_string():
+    """Decode a packed time register as H:MM."""
+    definition = RegisterDefinition(
+        key="prog1_time",
+        name="Prog1 Time",
+        address=250,
+        function="holding",
+        data_type="time",
+        scale=1,
+        unit="",
+        access="write",
+    )
+
+    measurement = decode_register(definition, values=(830,))
+
+    assert measurement == Measurement(
+        key="prog1_time",
+        name="Prog1 Time",
+        value="8:30",
+        unit="",
+    )
+
+
+def test_decode_time_rejects_invalid_minutes():
+    """Reject packed times whose minute field is 60 or greater."""
+    definition = RegisterDefinition(
+        key="prog1_time",
+        name="Prog1 Time",
+        address=250,
+        function="holding",
+        data_type="time",
+        scale=1,
+        unit="",
+        access="write",
+    )
+
+    with pytest.raises(DecodeError, match="invalid time minutes for prog1_time: 899"):
+        decode_register(definition, values=(899,))
+
+
 def test_decode_uint16_max_value():
     """Decode the largest unsigned 16-bit register value."""
     definition = RegisterDefinition(

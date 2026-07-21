@@ -1,7 +1,7 @@
 # SunSynk / Deye single-phase hybrid register map for SYNK-8K-SG05LP1.
 # SunSynk single-phase register definitions (addresses and scales).
 # Omitted for now: non-contiguous multi-register values,
-# overlapping AUX aliases, prog times, SD status, and control_mode.
+# overlapping AUX aliases, SD status, and control_mode.
 # Binary switches use nonzero-after-mask = True (no explicit on value yet).
 manufacturer: Sunsynk
 model: SYNK-8K-SG05LP1
@@ -1345,3 +1345,57 @@ registers:
         factor: 1
       - key: grid_l2_current
         factor: 1
+
+  - key: prog1_time
+    name: Prog1 Time
+    address: 250
+    function: holding
+    data_type: time
+    scale: 1
+    unit: ""
+    access: write
+
+  - key: prog2_time
+    name: Prog2 Time
+    address: 251
+    function: holding
+    data_type: time
+    scale: 1
+    unit: ""
+    access: write
+
+  - key: prog3_time
+    name: Prog3 Time
+    address: 252
+    function: holding
+    data_type: time
+    scale: 1
+    unit: ""
+    access: write
+
+  - key: prog4_time
+    name: Prog4 Time
+    address: 253
+    function: holding
+    data_type: time
+    scale: 1
+    unit: ""
+    access: write
+
+  - key: prog5_time
+    name: Prog5 Time
+    address: 254
+    function: holding
+    data_type: time
+    scale: 1
+    unit: ""
+    access: write
+
+  - key: prog6_time
+    name: Prog6 Time
+    address: 255
+    function: holding
+    data_type: time
+    scale: 1
+    unit: ""
+    access: write

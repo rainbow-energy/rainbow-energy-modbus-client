@@ -12,7 +12,17 @@ from rainbow.profiles import DeviceProfile, ProfileError, RegisterDefinition, lo
 
 SUPPORTED_FUNCTIONS = frozenset({"holding", "input"})
 SUPPORTED_DATA_TYPES = frozenset(
-    {"uint16", "int16", "uint32", "int32", "float32", "string", "math", "protocol"}
+    {
+        "uint16",
+        "int16",
+        "uint32",
+        "int32",
+        "float32",
+        "string",
+        "math",
+        "protocol",
+        "time",
+    }
 )
 
 

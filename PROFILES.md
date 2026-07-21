@@ -160,6 +160,24 @@ or `binary`.
     access: read
 ```
 
+### `time`
+
+One word packed as `hours * 100 + minutes` (SunSynk style), decoded
+as `"H:MM"` (`830` → `"8:30"`). Hours wrap with `% 24`. Minutes `>= 60` raise a
+decode error. Require `scale: 1`. No `bitmask`, `offset`, `options`, or
+`binary`.
+
+```yaml
+  - key: prog1_time
+    name: Prog1 Time
+    address: 250
+    function: holding
+    data_type: time
+    scale: 1
+    unit: ""
+    access: write
+```
+
 ### `math`
 
 Derived value from other profile keys (engineering values, after those keys
@@ -254,7 +272,7 @@ Decoded `Measurement.value` types by feature:
 | Feature | Python type |
 |---------|-------------|
 | Numeric leaf | `int` or `float` |
-| `string` / `protocol` / `options` | `str` |
+| `string` / `protocol` / `time` / `options` | `str` |
 | `binary` | `bool` |
 | `math` | `int` or `float` |
 
@@ -264,7 +282,7 @@ These appear in some community maps but are not expressible in Rainbow today:
 
 - Non-contiguous multi-register values (for example energy across gaps)
 - Fault bitfield sensors
-- Date/time and prog time packed formats
+- Date/time (system clock across multiple registers)
 - Nested math sources
 - Explicit binary `on` values (only nonzero-after-mask)
 

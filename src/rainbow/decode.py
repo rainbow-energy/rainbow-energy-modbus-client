@@ -63,6 +63,14 @@ def _raw_value(definition: RegisterDefinition, values: Sequence[int]) -> float |
     if definition.data_type == "protocol":
         raw = values[0]
         return f"{raw >> 8}.{raw & 0xFF}"
+    if definition.data_type == "time":
+        raw = values[0]
+        hours, minutes = divmod(raw, 100)
+        if minutes >= 60:
+            raise DecodeError(
+                f"invalid time minutes for {definition.key}: {raw}"
+            )
+        return f"{hours % 24}:{minutes:02d}"
     raise DecodeError(f"unsupported data_type: {definition.data_type}")
 
 

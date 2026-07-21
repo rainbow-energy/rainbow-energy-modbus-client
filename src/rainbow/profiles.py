@@ -17,6 +17,7 @@ _DATA_TYPE_COUNTS: dict[str, int | None] = {
     "int32": 2,
     "float32": 2,
     "protocol": 1,
+    "time": 1,
     "string": None,
     "math": None,
 }
@@ -182,6 +183,23 @@ _REGISTER_SCHEMA = {
         {
             "if": {
                 "properties": {"data_type": {"const": "protocol"}},
+                "required": ["data_type"],
+            },
+            "then": {
+                "properties": {"scale": {"const": 1}},
+                "not": {
+                    "anyOf": [
+                        {"required": ["bitmask"]},
+                        {"required": ["offset"]},
+                        {"required": ["options"]},
+                        {"required": ["binary"]},
+                    ]
+                },
+            },
+        },
+        {
+            "if": {
+                "properties": {"data_type": {"const": "time"}},
                 "required": ["data_type"],
             },
             "then": {

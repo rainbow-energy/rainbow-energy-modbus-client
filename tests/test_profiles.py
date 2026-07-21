@@ -462,6 +462,16 @@ def test_build_device_profile_supports_protocol_data_type():
     assert profile.registers[0].count == 1
 
 
+def test_build_device_profile_supports_time_data_type():
+    """Allow a packed clock-time register encoded in one word."""
+    profile = load_valid_profile(
+        register_overrides={"data_type": "time", "key": "prog1_time", "name": "Prog1 Time"}
+    )
+
+    assert profile.registers[0].data_type == "time"
+    assert profile.registers[0].count == 1
+
+
 def test_build_device_profile_rejects_bitmask_on_protocol():
     """Reject bitmask on protocol registers where it has no meaning."""
     with pytest.raises(ProfileError):
