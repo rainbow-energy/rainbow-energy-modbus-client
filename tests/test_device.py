@@ -335,6 +335,85 @@ def test_read_measurements_expands_math_sources():
     )
 
 
+def test_read_measurements_returns_math_and_source_without_reread():
+    """Return both math and source keys while reading each leaf once."""
+    from rainbow.profiles import MathSource
+
+    profile = DeviceProfile(
+        manufacturer="Example Energy",
+        model="Example 8K",
+        registers=(
+            RegisterDefinition(
+                key="aux_power",
+                name="AUX Power",
+                address=166,
+                function="holding",
+                data_type="int16",
+                scale=1,
+                unit="W",
+                access="read",
+            ),
+            RegisterDefinition(
+                key="grid_power",
+                name="Grid Power",
+                address=169,
+                function="holding",
+                data_type="int16",
+                scale=1,
+                unit="W",
+                access="read",
+            ),
+            RegisterDefinition(
+                key="inverter_power",
+                name="Inverter Power",
+                address=175,
+                function="holding",
+                data_type="int16",
+                scale=1,
+                unit="W",
+                access="read",
+            ),
+            RegisterDefinition(
+                key="essential_power",
+                name="Essential Power",
+                data_type="math",
+                unit="W",
+                access="read",
+                sources=(
+                    MathSource(key="inverter_power", factor=1),
+                    MathSource(key="grid_power", factor=1),
+                    MathSource(key="aux_power", factor=-1),
+                ),
+            ),
+        ),
+    )
+    reader = FakeReader(
+        responses={166: (50, 0, 0, 200, 0, 0, 0, 0, 0, 1000)},
+    )
+
+    measurements = read_measurements(
+        reader,
+        profile,
+        ("essential_power", "inverter_power"),
+    )
+
+    assert reader.requests == [("holding", 166, 10)]
+    assert measurements == (
+        Measurement(
+            key="essential_power",
+            name="Essential Power",
+            value=1150,
+            unit="W",
+        ),
+        Measurement(
+            key="inverter_power",
+            name="Inverter Power",
+            value=1000,
+            unit="W",
+        ),
+    )
+
+
 def test_decode_leaf_rejects_uncovered_register():
     """Reject leaf decode when no Modbus batch covers the register."""
     from rainbow.device import _decode_leaf
