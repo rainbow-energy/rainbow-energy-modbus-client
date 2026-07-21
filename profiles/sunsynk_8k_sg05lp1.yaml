@@ -1,10 +1,20 @@
 # SunSynk / Deye single-phase hybrid register map for SYNK-8K-SG05LP1.
 # SunSynk single-phase register definitions (addresses and scales).
-# Omitted for now: temperature offsets, bitmasks, enums, math sensors,
+# Omitted for now: enums, binary decode, math sensors,
 # non-contiguous multi-register values, and overlapping AUX aliases.
 manufacturer: Sunsynk
 model: SYNK-8K-SG05LP1
 registers:
+  - key: serial
+    name: Serial
+    address: 3
+    function: holding
+    data_type: string
+    count: 5
+    scale: 1
+    unit: ""
+    access: read
+
   - key: battery_soc
     name: Battery SOC
     address: 184
@@ -12,6 +22,16 @@ registers:
     data_type: uint16
     scale: 1
     unit: "%"
+    access: read
+
+  - key: battery_temperature
+    name: Battery Temperature
+    address: 182
+    function: holding
+    data_type: uint16
+    scale: 0.1
+    offset: 100
+    unit: "°C"
     access: read
 
   - key: battery_voltage
@@ -57,6 +77,36 @@ registers:
     data_type: int16
     scale: 1
     unit: A
+    access: read
+
+  - key: dc_transformer_temperature
+    name: DC Transformer Temperature
+    address: 90
+    function: holding
+    data_type: uint16
+    scale: 0.1
+    offset: 100
+    unit: "°C"
+    access: read
+
+  - key: environment_temperature
+    name: Environment Temperature
+    address: 95
+    function: holding
+    data_type: uint16
+    scale: 0.1
+    offset: 100
+    unit: "°C"
+    access: read
+
+  - key: radiator_temperature
+    name: Radiator Temperature
+    address: 91
+    function: holding
+    data_type: uint16
+    scale: 0.1
+    offset: 100
+    unit: "°C"
     access: read
 
   - key: inverter_power
