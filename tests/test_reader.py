@@ -239,3 +239,9 @@ def test_reader_rejects_empty_serial_port():
     """Reject an empty serial-port path."""
     with pytest.raises(ValueError, match="port must not be empty"):
         Rs485Reader(port="", device_id=1, client=FakeModbusClient())
+
+
+def test_reader_rejects_whitespace_only_serial_port():
+    """Reject a serial-port path that contains only whitespace."""
+    with pytest.raises(ValueError, match="port must not be empty"):
+        Rs485Reader(port="   ", device_id=1, client=FakeModbusClient())

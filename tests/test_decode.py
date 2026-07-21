@@ -29,6 +29,24 @@ def test_decode_uint16_with_identity_scale():
     )
 
 
+def test_decode_uint16_max_value():
+    """Decode the largest unsigned 16-bit register value."""
+    definition = RegisterDefinition(
+        key="battery_soc",
+        name="Battery SOC",
+        address=184,
+        function="holding",
+        data_type="uint16",
+        scale=1,
+        unit="%",
+        access="read",
+    )
+
+    measurement = decode_register(definition, values=(0xFFFF,))
+
+    assert measurement.value == 65535
+
+
 def test_decode_uint16_applies_scale():
     """Apply a non-1 scale to an unsigned 16-bit register."""
     definition = RegisterDefinition(
@@ -71,6 +89,42 @@ def test_decode_int16_signed_value():
         value=-1,
         unit="W",
     )
+
+
+def test_decode_int16_max_positive_value():
+    """Decode the largest positive signed 16-bit value."""
+    definition = RegisterDefinition(
+        key="battery_power",
+        name="Battery Power",
+        address=190,
+        function="holding",
+        data_type="int16",
+        scale=1,
+        unit="W",
+        access="read",
+    )
+
+    measurement = decode_register(definition, values=(0x7FFF,))
+
+    assert measurement.value == 32767
+
+
+def test_decode_int16_min_negative_value():
+    """Decode the most negative signed 16-bit value."""
+    definition = RegisterDefinition(
+        key="battery_power",
+        name="Battery Power",
+        address=190,
+        function="holding",
+        data_type="int16",
+        scale=1,
+        unit="W",
+        access="read",
+    )
+
+    measurement = decode_register(definition, values=(0x8000,))
+
+    assert measurement.value == -32768
 
 
 def test_decode_string_register():
@@ -149,6 +203,25 @@ def test_decode_applies_bitmask():
         value=1,
         unit="",
     )
+
+
+def test_decode_applies_bitmask_before_int16_sign():
+    """Apply bitmask before interpreting a signed 16-bit value."""
+    definition = RegisterDefinition(
+        key="signed_flags",
+        name="Signed Flags",
+        address=100,
+        function="holding",
+        data_type="int16",
+        scale=1,
+        unit="",
+        access="read",
+        bitmask=0x00FF,
+    )
+
+    measurement = decode_register(definition, values=(0xFFFF,))
+
+    assert measurement.value == 255
 
 
 def test_decode_register_rejects_wrong_value_count():
@@ -290,6 +363,26 @@ def test_decode_float32_big_endian():
     assert measurement.name == "Example Float"
     assert measurement.value == pytest.approx(1.0)
     assert measurement.unit == ""
+
+
+def test_decode_float32_little_endian():
+    """Decode an IEEE 754 float32 from two registers, low word first."""
+    definition = RegisterDefinition(
+        key="example_float",
+        name="Example Float",
+        address=200,
+        function="holding",
+        data_type="float32",
+        scale=1,
+        unit="",
+        access="read",
+        count=2,
+        word_order="little",
+    )
+
+    measurement = decode_register(definition, values=(0x0000, 0x3F80))
+
+    assert measurement.value == pytest.approx(1.0)
 
 
 def test_decode_float32_rejects_nan():
