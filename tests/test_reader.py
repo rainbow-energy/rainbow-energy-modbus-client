@@ -83,10 +83,21 @@ class TimeoutModbusClient(FakeModbusClient):
         raise ModbusIOException("No response received after retries")
 
 
+def make_reader(**overrides) -> Rs485Reader:
+    """Build an Rs485Reader with the usual test port and device id."""
+    values = {
+        "port": "/dev/ttyUSB0",
+        "device_id": 1,
+        "client": FakeModbusClient(),
+    }
+    values.update(overrides)
+    return Rs485Reader(**values)
+
+
 def test_read_holding_registers_returns_structured_data():
     """Return structured data for a successful register read."""
     client = FakeModbusClient()
-    reader = Rs485Reader(port="/dev/ttyUSB0", device_id=1, client=client)
+    reader = make_reader(client=client)
 
     result = reader.read_holding_registers(start_address=100, count=3)
 
@@ -101,7 +112,7 @@ def test_read_holding_registers_returns_structured_data():
 def test_read_input_registers_returns_structured_data():
     """Return structured data for a successful input-register read."""
     client = FakeModbusClient()
-    reader = Rs485Reader(port="/dev/ttyUSB0", device_id=1, client=client)
+    reader = make_reader(client=client)
 
     result = reader.read_input_registers(start_address=100, count=3)
 
@@ -115,8 +126,7 @@ def test_read_input_registers_returns_structured_data():
 
 def test_read_holding_registers_raises_for_modbus_error():
     """Raise an application error for a Modbus exception response."""
-    client = ErrorModbusClient()
-    reader = Rs485Reader(port="/dev/ttyUSB0", device_id=1, client=client)
+    reader = make_reader(client=ErrorModbusClient())
 
     with pytest.raises(RegisterReadError, match="Modbus error reading registers"):
         reader.read_holding_registers(start_address=100, count=3)
@@ -124,11 +134,7 @@ def test_read_holding_registers_raises_for_modbus_error():
 
 def test_read_holding_registers_raises_for_short_response():
     """Raise an application error when registers are missing."""
-    reader = Rs485Reader(
-        port="/dev/ttyUSB0",
-        device_id=1,
-        client=ShortResponseModbusClient(),
-    )
+    reader = make_reader(client=ShortResponseModbusClient())
 
     with pytest.raises(RegisterReadError, match="Expected 3 registers, received 2"):
         reader.read_holding_registers(start_address=100, count=3)
@@ -136,11 +142,7 @@ def test_read_holding_registers_raises_for_short_response():
 
 def test_read_holding_registers_wraps_transport_error():
     """Preserve transport failures as application error causes."""
-    reader = Rs485Reader(
-        port="/dev/ttyUSB0",
-        device_id=1,
-        client=TimeoutModbusClient(),
-    )
+    reader = make_reader(client=TimeoutModbusClient())
 
     with pytest.raises(RegisterReadError, match="Failed to read registers") as error:
         reader.read_holding_registers(start_address=100, count=3)
@@ -151,7 +153,7 @@ def test_read_holding_registers_wraps_transport_error():
 def test_read_holding_registers_rejects_zero_count():
     """Reject an empty register range before transport access."""
     client = FakeModbusClient()
-    reader = Rs485Reader(port="/dev/ttyUSB0", device_id=1, client=client)
+    reader = make_reader(client=client)
 
     with pytest.raises(ValueError, match="count must be between 1 and 125"):
         reader.read_holding_registers(start_address=100, count=0)
@@ -162,7 +164,7 @@ def test_read_holding_registers_rejects_zero_count():
 def test_read_holding_registers_rejects_count_above_modbus_limit():
     """Reject reads above the Modbus register-count limit."""
     client = FakeModbusClient()
-    reader = Rs485Reader(port="/dev/ttyUSB0", device_id=1, client=client)
+    reader = make_reader(client=client)
 
     with pytest.raises(ValueError, match="count must be between 1 and 125"):
         reader.read_holding_registers(start_address=100, count=126)
@@ -173,7 +175,7 @@ def test_read_holding_registers_rejects_count_above_modbus_limit():
 def test_read_holding_registers_rejects_negative_address():
     """Reject negative Modbus register addresses."""
     client = FakeModbusClient()
-    reader = Rs485Reader(port="/dev/ttyUSB0", device_id=1, client=client)
+    reader = make_reader(client=client)
 
     with pytest.raises(ValueError, match="start_address must be between 0 and 65535"):
         reader.read_holding_registers(start_address=-1, count=3)
@@ -184,7 +186,7 @@ def test_read_holding_registers_rejects_negative_address():
 def test_read_holding_registers_rejects_address_above_modbus_limit():
     """Reject addresses beyond the Modbus address space."""
     client = FakeModbusClient()
-    reader = Rs485Reader(port="/dev/ttyUSB0", device_id=1, client=client)
+    reader = make_reader(client=client)
 
     with pytest.raises(ValueError, match="start_address must be between 0 and 65535"):
         reader.read_holding_registers(start_address=65536, count=1)
@@ -195,7 +197,7 @@ def test_read_holding_registers_rejects_address_above_modbus_limit():
 def test_read_holding_registers_rejects_range_past_final_address():
     """Reject ranges extending beyond the Modbus address space."""
     client = FakeModbusClient()
-    reader = Rs485Reader(port="/dev/ttyUSB0", device_id=1, client=client)
+    reader = make_reader(client=client)
 
     with pytest.raises(ValueError, match="register range exceeds address 65535"):
         reader.read_holding_registers(start_address=65535, count=2)
@@ -206,19 +208,19 @@ def test_read_holding_registers_rejects_range_past_final_address():
 def test_reader_rejects_broadcast_device_id():
     """Reject the broadcast device ID for register reads."""
     with pytest.raises(ValueError, match="device_id must be between 1 and 247"):
-        Rs485Reader(port="/dev/ttyUSB0", device_id=0, client=FakeModbusClient())
+        make_reader(device_id=0)
 
 
 def test_reader_rejects_reserved_device_id():
     """Reject reserved Modbus device IDs."""
     with pytest.raises(ValueError, match="device_id must be between 1 and 247"):
-        Rs485Reader(port="/dev/ttyUSB0", device_id=248, client=FakeModbusClient())
+        make_reader(device_id=248)
 
 
 def test_reader_closes_serial_client():
     """Close the underlying client explicitly."""
     client = FakeModbusClient()
-    reader = Rs485Reader(port="/dev/ttyUSB0", device_id=1, client=client)
+    reader = make_reader(client=client)
 
     reader.close()
 
@@ -229,7 +231,7 @@ def test_reader_context_manager_closes_serial_client():
     """Close the underlying client after context-managed use."""
     client = FakeModbusClient()
 
-    with Rs485Reader(port="/dev/ttyUSB0", device_id=1, client=client):
+    with make_reader(client=client):
         pass
 
     assert client.closed is True
@@ -238,10 +240,10 @@ def test_reader_context_manager_closes_serial_client():
 def test_reader_rejects_empty_serial_port():
     """Reject an empty serial-port path."""
     with pytest.raises(ValueError, match="port must not be empty"):
-        Rs485Reader(port="", device_id=1, client=FakeModbusClient())
+        make_reader(port="")
 
 
 def test_reader_rejects_whitespace_only_serial_port():
     """Reject a serial-port path that contains only whitespace."""
     with pytest.raises(ValueError, match="port must not be empty"):
-        Rs485Reader(port="   ", device_id=1, client=FakeModbusClient())
+        make_reader(port="   ")
