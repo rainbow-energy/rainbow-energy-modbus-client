@@ -52,61 +52,99 @@ def _decode_fault(
     return ", ".join(faults)
 
 
+def _decode_float32(
+    definition: RegisterDefinition, values: Sequence[int]
+) -> float:
+    """Decode a 32-bit IEEE float from two register words."""
+    high, low = _ordered_words(definition, values)
+    value = struct.unpack(">f", struct.pack(">HH", high, low))[0]
+    if not math.isfinite(value):
+        raise DecodeError(
+            f"non-finite float32 value for {definition.key}: {value}"
+        )
+    return value
+
+
+def _decode_int32(
+    definition: RegisterDefinition, values: Sequence[int]
+) -> int:
+    """Decode a signed or unsigned 32-bit integer from two words."""
+    high, low = _ordered_words(definition, values)
+    raw = (high << 16) | low
+    if definition.data_type == "int32" and raw >= 0x8000_0000:
+        return raw - 0x1_0000_0000
+    return raw
+
+
+def _decode_int16(values: Sequence[int]) -> int:
+    """Decode a signed 16-bit integer from one register word."""
+    raw = values[0]
+    if raw >= 0x8000:
+        return raw - 0x10000
+    return raw
+
+
+def _decode_protocol(values: Sequence[int]) -> str:
+    """Decode a major.minor protocol version from one register."""
+    raw = values[0]
+    return f"{raw >> 8}.{raw & 0xFF}"
+
+
+def _decode_time(definition: RegisterDefinition, values: Sequence[int]) -> str:
+    """Decode HHMM-packed minutes into a clock string."""
+    raw = values[0]
+    hours, minutes = divmod(raw, 100)
+    if minutes >= 60:
+        raise DecodeError(
+            f"invalid time minutes for {definition.key}: {raw}"
+        )
+    return f"{hours % 24}:{minutes:02d}"
+
+
+def _decode_datetime(
+    definition: RegisterDefinition, values: Sequence[int]
+) -> str:
+    """Decode SunSynk three-word datetime into an ISO-like string."""
+    year = ((values[0] & 0xFF00) >> 8) + 2000
+    month = values[0] & 0xFF
+    day = (values[1] & 0xFF00) >> 8
+    hour = values[1] & 0xFF
+    minute = (values[2] & 0xFF00) >> 8
+    second = values[2] & 0xFF
+    if not (
+        1 <= month <= 12
+        and 1 <= day <= 31
+        and 0 <= hour <= 23
+        and 0 <= minute <= 59
+        and 0 <= second <= 59
+    ):
+        raise DecodeError(f"invalid datetime for {definition.key}")
+    return f"{year}-{month:02d}-{day:02d} {hour}:{minute:02d}:{second:02d}"
+
+
 def _raw_value(definition: RegisterDefinition, values: Sequence[int]) -> float | int | str:
     """Interpret raw register words according to the data type."""
-    if definition.data_type == "string":
-        return _decode_string(values)
-    if definition.data_type == "fault":
-        return _decode_fault(definition, values)
-    if definition.data_type == "float32":
-        high, low = _ordered_words(definition, values)
-        value = struct.unpack(">f", struct.pack(">HH", high, low))[0]
-        if not math.isfinite(value):
-            raise DecodeError(
-                f"non-finite float32 value for {definition.key}: {value}"
-            )
-        return value
-    if definition.data_type in {"uint32", "int32"}:
-        high, low = _ordered_words(definition, values)
-        raw = (high << 16) | low
-        if definition.data_type == "int32" and raw >= 0x8000_0000:
-            return raw - 0x1_0000_0000
-        return raw
-    if definition.data_type == "int16":
-        raw = values[0]
-        if raw >= 0x8000:
-            return raw - 0x10000
-        return raw
-    if definition.data_type == "uint16":
-        return values[0]
-    if definition.data_type == "protocol":
-        raw = values[0]
-        return f"{raw >> 8}.{raw & 0xFF}"
-    if definition.data_type == "time":
-        raw = values[0]
-        hours, minutes = divmod(raw, 100)
-        if minutes >= 60:
-            raise DecodeError(
-                f"invalid time minutes for {definition.key}: {raw}"
-            )
-        return f"{hours % 24}:{minutes:02d}"
-    if definition.data_type == "datetime":
-        year = ((values[0] & 0xFF00) >> 8) + 2000
-        month = values[0] & 0xFF
-        day = (values[1] & 0xFF00) >> 8
-        hour = values[1] & 0xFF
-        minute = (values[2] & 0xFF00) >> 8
-        second = values[2] & 0xFF
-        if not (
-            1 <= month <= 12
-            and 1 <= day <= 31
-            and 0 <= hour <= 23
-            and 0 <= minute <= 59
-            and 0 <= second <= 59
-        ):
-            raise DecodeError(f"invalid datetime for {definition.key}")
-        return f"{year}-{month:02d}-{day:02d} {hour}:{minute:02d}:{second:02d}"
-    raise DecodeError(f"unsupported data_type: {definition.data_type}")
+    match definition.data_type:
+        case "string":
+            return _decode_string(values)
+        case "fault":
+            return _decode_fault(definition, values)
+        case "float32":
+            return _decode_float32(definition, values)
+        case "uint32" | "int32":
+            return _decode_int32(definition, values)
+        case "int16":
+            return _decode_int16(values)
+        case "uint16":
+            return values[0]
+        case "protocol":
+            return _decode_protocol(values)
+        case "time":
+            return _decode_time(definition, values)
+        case "datetime":
+            return _decode_datetime(definition, values)
+        case _:
+            raise DecodeError(f"unsupported data_type: {definition.data_type}")
 
 
 def decode_math(
