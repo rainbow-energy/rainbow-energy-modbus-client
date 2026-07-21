@@ -29,6 +29,46 @@ def test_decode_uint16_with_identity_scale():
     )
 
 
+def test_decode_protocol_version_string():
+    """Decode a protocol register as major.minor from one word."""
+    definition = RegisterDefinition(
+        key="protocol",
+        name="Protocol",
+        address=2,
+        function="holding",
+        data_type="protocol",
+        scale=1,
+        unit="",
+        access="read",
+    )
+
+    measurement = decode_register(definition, values=(0x0105,))
+
+    assert measurement == Measurement(
+        key="protocol",
+        name="Protocol",
+        value="1.5",
+        unit="",
+    )
+
+
+def test_decode_protocol_version_bounds():
+    """Decode the lowest and highest protocol version words."""
+    definition = RegisterDefinition(
+        key="protocol",
+        name="Protocol",
+        address=2,
+        function="holding",
+        data_type="protocol",
+        scale=1,
+        unit="",
+        access="read",
+    )
+
+    assert decode_register(definition, values=(0x0000,)).value == "0.0"
+    assert decode_register(definition, values=(0xFFFF,)).value == "255.255"
+
+
 def test_decode_uint16_max_value():
     """Decode the largest unsigned 16-bit register value."""
     definition = RegisterDefinition(

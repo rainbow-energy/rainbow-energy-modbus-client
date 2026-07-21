@@ -2,7 +2,6 @@
 # SunSynk single-phase register definitions (addresses and scales).
 # Omitted for now: non-contiguous multi-register values,
 # overlapping AUX aliases, prog times, SD status, and control_mode.
-# Protocol stays numeric until a version-string decode exists.
 # Binary switches use nonzero-after-mask = True (no explicit on value yet).
 manufacturer: Sunsynk
 model: SYNK-8K-SG05LP1
@@ -559,7 +558,7 @@ registers:
     name: Protocol
     address: 2
     function: holding
-    data_type: uint16
+    data_type: protocol
     scale: 1
     unit: ""
     access: read

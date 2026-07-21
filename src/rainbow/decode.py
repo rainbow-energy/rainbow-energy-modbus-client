@@ -60,6 +60,9 @@ def _raw_value(definition: RegisterDefinition, values: Sequence[int]) -> float |
         return raw
     if definition.data_type == "uint16":
         return values[0]
+    if definition.data_type == "protocol":
+        raw = values[0]
+        return f"{raw >> 8}.{raw & 0xFF}"
     raise DecodeError(f"unsupported data_type: {definition.data_type}")
 
 

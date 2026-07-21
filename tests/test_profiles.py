@@ -452,6 +452,42 @@ def test_build_device_profile_supports_binary():
     assert profile.registers[0].binary is True
 
 
+def test_build_device_profile_supports_protocol_data_type():
+    """Allow a protocol version register encoded in one word."""
+    profile = load_valid_profile(
+        register_overrides={"data_type": "protocol", "key": "protocol", "name": "Protocol"}
+    )
+
+    assert profile.registers[0].data_type == "protocol"
+    assert profile.registers[0].count == 1
+
+
+def test_build_device_profile_rejects_bitmask_on_protocol():
+    """Reject bitmask on protocol registers where it has no meaning."""
+    with pytest.raises(ProfileError):
+        load_valid_profile(
+            register_overrides={
+                "data_type": "protocol",
+                "key": "protocol",
+                "name": "Protocol",
+                "bitmask": 0xFF,
+            }
+        )
+
+
+def test_build_device_profile_rejects_protocol_with_non_unit_scale():
+    """Reject protocol registers with a scale other than 1."""
+    with pytest.raises(ProfileError, match="profile registers.0.scale: "):
+        load_valid_profile(
+            register_overrides={
+                "data_type": "protocol",
+                "key": "protocol",
+                "name": "Protocol",
+                "scale": 0.1,
+            }
+        )
+
+
 def test_build_device_profile_supports_math_sources():
     """Allow a math register that combines other register keys."""
     from rainbow.profiles import MathSource
