@@ -9,7 +9,6 @@
 # - total_grid_import (non-contiguous registers 78+80)
 # - fault (FaultSensor 103-106)
 # - date_time (datetime registers 22-24)
-# - SD status special decode
 #
 # Run: make check-profile PROFILE=profiles/draft/sunsynk_8k_sg05lp1.yaml
 manufacturer: Sunsynk

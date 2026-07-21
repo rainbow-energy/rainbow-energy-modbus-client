@@ -240,8 +240,10 @@ address if their masks do **not** overlap.
 ### `options`
 
 Map the integer value (after bitmask) to a string label. Require `scale: 1`.
-Unknown values raise a decode error. Not allowed with `offset`, `binary`,
-`string`, or `math`.
+Unknown values raise a decode error (Rainbow does not return `"unknown N"`
+strings). Not allowed with `offset`, `binary`, `string`, or `math`.
+
+Use this for discrete codes such as SD status (`1000` → fault, `2000` → ok).
 
 ```yaml
     options:

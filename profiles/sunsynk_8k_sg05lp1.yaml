@@ -1,7 +1,7 @@
 # SunSynk / Deye single-phase hybrid register map for SYNK-8K-SG05LP1.
 # SunSynk single-phase register definitions (addresses and scales).
 # Omitted for now: non-contiguous multi-register values,
-# overlapping AUX aliases, SD status, and control_mode.
+# overlapping AUX aliases, and control_mode.
 # Binary switches use nonzero-after-mask = True (no explicit on value yet).
 manufacturer: Sunsynk
 model: SYNK-8K-SG05LP1
@@ -1399,3 +1399,15 @@ registers:
     scale: 1
     unit: ""
     access: write
+
+  - key: sd_status
+    name: SD Status
+    address: 92
+    function: holding
+    data_type: uint16
+    scale: 1
+    unit: ""
+    access: read
+    options:
+      1000: fault
+      2000: ok
