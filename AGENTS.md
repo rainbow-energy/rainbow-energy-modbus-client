@@ -24,6 +24,15 @@
 - Add concise docstrings to modules and public classes, functions, and methods.
 - Do not add speculative abstractions or unrelated features.
 
+## Documentation
+
+- Keep docs in sync with behaviour changes in the same change set when practical.
+- Update [PROFILES.md](PROFILES.md) when profile schema, data types, decode
+  modifiers, overlap rules, or authoring guidance change.
+- Update [README.md](README.md) when setup, commands, or high-level workflow
+  change.
+- Do not leave docs describing removed or outdated behaviour.
+
 ## Commit messages
 
 - Summarize the change in a subject of about 50 characters or fewer.
