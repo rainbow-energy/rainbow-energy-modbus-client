@@ -3,13 +3,15 @@
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 import yaml
 from jsonschema import Draft202012Validator
 from jsonschema.exceptions import ValidationError
 
-
+_MAX_MODBUS_ADDRESS = 65535
+_MAX_BATCH_COUNT = 125
+_BITS_PER_REGISTER = 16
 _DATA_TYPE_COUNTS: dict[str, int | None] = {
     "uint16": 1,
     "int16": 1,
@@ -41,6 +43,73 @@ _BITS_SCHEMA = {
     "minProperties": 1,
     "additionalProperties": _NON_EMPTY_STRING_SCHEMA,
 }
+_VARIABLE_COUNT = {
+    "type": "integer",
+    "minimum": 1,
+    "maximum": _MAX_BATCH_COUNT,
+}
+
+
+def _forbid(*fields: str) -> dict[str, Any]:
+    """Build a JSON Schema clause that rejects the given fields."""
+    if len(fields) == 1:
+        return {"not": {"required": [fields[0]]}}
+    return {
+        "not": {
+            "anyOf": [{"required": [field]} for field in fields],
+        }
+    }
+
+
+def _if_data_type(data_type: str | Mapping[str, Any], then: Mapping[str, Any]) -> dict[str, Any]:
+    """Build an if/then rule keyed on data_type."""
+    data_type_schema: Mapping[str, Any]
+    if isinstance(data_type, str):
+        data_type_schema = {"const": data_type}
+    else:
+        data_type_schema = data_type
+    return {
+        "if": {
+            "properties": {"data_type": data_type_schema},
+            "required": ["data_type"],
+        },
+        "then": dict(then),
+    }
+
+
+def _scale_one(**extra: Any) -> dict[str, Any]:
+    """Require scale == 1, optionally merging extra then-clause fields."""
+    properties = {"scale": {"const": 1}, **extra.pop("properties", {})}
+    return {"properties": properties, **extra}
+
+
+def _fixed_count_rule(data_type: str, required_count: int) -> dict[str, Any]:
+    """Constrain count (and word_order) for fixed-width data types."""
+    properties: dict[str, Any] = {"count": {"const": required_count}}
+    if required_count == 2:
+        properties["word_order"] = {
+            "type": "string",
+            "enum": ["big", "little"],
+        }
+        then: dict[str, Any] = {
+            "properties": properties,
+            "required": ["count", "word_order"],
+            **_forbid("bitmask"),
+        }
+    elif required_count == 1:
+        then = {
+            "properties": properties,
+            **_forbid("word_order"),
+        }
+    else:
+        then = {
+            "properties": properties,
+            "required": ["count"],
+            **_forbid("bitmask", "word_order"),
+        }
+    return _if_data_type(data_type, then)
+
+
 _REGISTER_SCHEMA = {
     "type": "object",
     "additionalProperties": False,
@@ -77,21 +146,17 @@ _REGISTER_SCHEMA = {
         "address": {
             "type": "integer",
             "minimum": 0,
-            "maximum": 65535,
+            "maximum": _MAX_MODBUS_ADDRESS,
         },
         "data_type": {
             "type": "string",
             "enum": list(_DATA_TYPE_COUNTS),
         },
-        "count": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 125,
-        },
+        "count": _VARIABLE_COUNT,
         "bitmask": {
             "type": "integer",
             "minimum": 1,
-            "maximum": 65535,
+            "maximum": _MAX_MODBUS_ADDRESS,
         },
         "offset": {
             "type": "number",
@@ -115,214 +180,87 @@ _REGISTER_SCHEMA = {
         "absolute": {"type": "boolean"},
     },
     "allOf": [
-        {
-            "if": {
-                "properties": {"data_type": {"const": data_type}},
-                "required": ["data_type"],
-            },
-            "then": {
-                "properties": {
-                    "count": {"const": required_count},
-                    **(
-                        {
-                            "word_order": {
-                                "type": "string",
-                                "enum": ["big", "little"],
-                            }
-                        }
-                        if required_count == 2
-                        else {}
-                    ),
-                },
-                **(
-                    {"required": ["count", "word_order"]}
-                    if required_count == 2
-                    else {"required": ["count"]}
-                    if required_count != 1
-                    else {}
-                ),
-                **(
-                    {"not": {"required": ["bitmask"]}}
-                    if required_count == 2
-                    else {
-                        "not": {
-                            "anyOf": [
-                                {"required": ["bitmask"]},
-                                {"required": ["word_order"]},
-                            ]
-                        }
-                    }
-                    if required_count != 1
-                    else {"not": {"required": ["word_order"]}}
-                ),
-            },
-        }
-        for data_type, required_count in _DATA_TYPE_COUNTS.items()
-        if required_count is not None
-    ]
-    + [
-        {
-            "if": {
-                "properties": {"data_type": {"not": {"const": "math"}}},
-                "required": ["data_type"],
-            },
-            "then": {
+        *(_fixed_count_rule(data_type, count)
+          for data_type, count in _DATA_TYPE_COUNTS.items()
+          if count is not None),
+        _if_data_type(
+            {"not": {"const": "math"}},
+            {
                 "required": ["address", "function", "scale"],
-                "not": {
-                    "anyOf": [
-                        {"required": ["sources"]},
-                        {"required": ["no_negative"]},
-                        {"required": ["absolute"]},
-                    ]
-                },
+                **_forbid("sources", "no_negative", "absolute"),
             },
-        },
-        {
-            "if": {
-                "properties": {"data_type": {"const": "string"}},
-                "required": ["data_type"],
-            },
-            "then": {
+        ),
+        _if_data_type(
+            "string",
+            {
                 "required": ["count"],
-                "properties": {
-                    "count": {"type": "integer", "minimum": 1, "maximum": 125},
-                    "scale": {"const": 1},
-                },
-                "not": {
-                    "anyOf": [
-                        {"required": ["bitmask"]},
-                        {"required": ["word_order"]},
-                        {"required": ["offset"]},
-                        {"required": ["options"]},
-                        {"required": ["binary"]},
-                        {"required": ["bits"]},
-                    ]
-                },
+                **_scale_one(
+                    properties={"count": _VARIABLE_COUNT},
+                    **_forbid(
+                        "bitmask",
+                        "word_order",
+                        "offset",
+                        "options",
+                        "binary",
+                        "bits",
+                    ),
+                ),
             },
-        },
-        {
-            "if": {
-                "properties": {"data_type": {"const": "fault"}},
-                "required": ["data_type"],
-            },
-            "then": {
+        ),
+        _if_data_type(
+            "fault",
+            {
                 "required": ["count", "bits"],
-                "properties": {
-                    "count": {"type": "integer", "minimum": 1, "maximum": 125},
-                    "scale": {"const": 1},
-                },
-                "not": {
-                    "anyOf": [
-                        {"required": ["bitmask"]},
-                        {"required": ["word_order"]},
-                        {"required": ["offset"]},
-                        {"required": ["options"]},
-                        {"required": ["binary"]},
-                    ]
-                },
+                **_scale_one(
+                    properties={"count": _VARIABLE_COUNT},
+                    **_forbid(
+                        "bitmask",
+                        "word_order",
+                        "offset",
+                        "options",
+                        "binary",
+                    ),
+                ),
             },
-        },
-        {
-            "if": {
-                "properties": {"data_type": {"const": "protocol"}},
-                "required": ["data_type"],
-            },
-            "then": {
-                "properties": {"scale": {"const": 1}},
-                "not": {
-                    "anyOf": [
-                        {"required": ["bitmask"]},
-                        {"required": ["offset"]},
-                        {"required": ["options"]},
-                        {"required": ["binary"]},
-                        {"required": ["bits"]},
-                    ]
-                },
-            },
-        },
-        {
-            "if": {
-                "properties": {"data_type": {"const": "time"}},
-                "required": ["data_type"],
-            },
-            "then": {
-                "properties": {"scale": {"const": 1}},
-                "not": {
-                    "anyOf": [
-                        {"required": ["bitmask"]},
-                        {"required": ["offset"]},
-                        {"required": ["options"]},
-                        {"required": ["binary"]},
-                        {"required": ["bits"]},
-                    ]
-                },
-            },
-        },
-        {
-            "if": {
-                "properties": {"data_type": {"const": "datetime"}},
-                "required": ["data_type"],
-            },
-            "then": {
-                "properties": {"scale": {"const": 1}},
-                "not": {
-                    "anyOf": [
-                        {"required": ["offset"]},
-                        {"required": ["options"]},
-                        {"required": ["binary"]},
-                        {"required": ["bits"]},
-                    ]
-                },
-            },
-        },
-        {
-            "if": {
-                "properties": {"data_type": {"const": "math"}},
-                "required": ["data_type"],
-            },
-            "then": {
+        ),
+        *(
+            _if_data_type(
+                data_type,
+                _scale_one(
+                    **_forbid("bitmask", "offset", "options", "binary", "bits"),
+                ),
+            )
+            for data_type in ("protocol", "time")
+        ),
+        _if_data_type(
+            "datetime",
+            _scale_one(**_forbid("offset", "options", "binary", "bits")),
+        ),
+        _if_data_type(
+            "math",
+            {
                 "required": ["sources"],
-                "not": {
-                    "anyOf": [
-                        {"required": ["address"]},
-                        {"required": ["function"]},
-                        {"required": ["scale"]},
-                        {"required": ["count"]},
-                        {"required": ["word_order"]},
-                        {"required": ["bitmask"]},
-                        {"required": ["offset"]},
-                        {"required": ["options"]},
-                        {"required": ["binary"]},
-                        {"required": ["bits"]},
-                    ]
-                },
+                **_forbid(
+                    "address",
+                    "function",
+                    "scale",
+                    "count",
+                    "word_order",
+                    "bitmask",
+                    "offset",
+                    "options",
+                    "binary",
+                    "bits",
+                ),
             },
-        },
+        ),
         {
             "if": {"required": ["options"]},
-            "then": {
-                "properties": {"scale": {"const": 1}},
-                "not": {
-                    "anyOf": [
-                        {"required": ["offset"]},
-                        {"required": ["binary"]},
-                        {"required": ["bits"]},
-                    ]
-                },
-            },
+            "then": _scale_one(**_forbid("offset", "binary", "bits")),
         },
         {
             "if": {"required": ["binary"]},
-            "then": {
-                "properties": {"scale": {"const": 1}},
-                "not": {
-                    "anyOf": [
-                        {"required": ["offset"]},
-                        {"required": ["options"]},
-                        {"required": ["bits"]},
-                    ]
-                },
-            },
+            "then": _scale_one(**_forbid("offset", "options", "bits")),
         },
         {
             "if": {"required": ["bits"]},
@@ -409,33 +347,53 @@ def _validate_register_range(index: int, register_data: Mapping) -> None:
         return
     address = cast(int, register_data["address"])
     count = cast(int, register_data.get("count", 1))
-    if address + count - 1 > 65535:
-        raise ProfileError(f"register {index} range exceeds address 65535")
+    if address + count - 1 > _MAX_MODBUS_ADDRESS:
+        raise ProfileError(
+            f"register {index} range exceeds address {_MAX_MODBUS_ADDRESS}"
+        )
+
+
+def _normalize_options(register_data: dict[str, Any]) -> None:
+    """Convert option map keys from YAML strings to integers."""
+    if "options" not in register_data:
+        return
+    register_data["options"] = {
+        int(key): value for key, value in register_data["options"].items()
+    }
+
+
+def _normalize_bits(index: int, register_data: dict[str, Any]) -> None:
+    """Convert bit labels and reject numbers outside the register width."""
+    if "bits" not in register_data:
+        return
+    bits = {int(key): value for key, value in register_data["bits"].items()}
+    count = cast(int, register_data["count"])
+    max_bit = count * _BITS_PER_REGISTER
+    for bit in bits:
+        if bit < 1 or bit > max_bit:
+            raise ProfileError(
+                f"register {index} bit {bit} out of range 1..{max_bit}"
+            )
+    register_data["bits"] = bits
+
+
+def _normalize_sources(register_data: dict[str, Any]) -> None:
+    """Convert math source mappings into MathSource values."""
+    if "sources" not in register_data:
+        return
+    register_data["sources"] = tuple(
+        MathSource(key=source["key"], factor=source["factor"])
+        for source in register_data["sources"]
+    )
 
 
 def _load_register(index: int, register_data: Mapping) -> RegisterDefinition:
     """Load and validate one register definition."""
     _validate_register_range(index, register_data)
     data = dict(register_data)
-    if "options" in data:
-        data["options"] = {
-            int(key): value for key, value in data["options"].items()
-        }
-    if "bits" in data:
-        bits = {int(key): value for key, value in data["bits"].items()}
-        count = cast(int, data["count"])
-        max_bit = count * 16
-        for bit in bits:
-            if bit < 1 or bit > max_bit:
-                raise ProfileError(
-                    f"register {index} bit {bit} out of range 1..{max_bit}"
-                )
-        data["bits"] = bits
-    if "sources" in data:
-        data["sources"] = tuple(
-            MathSource(key=source["key"], factor=source["factor"])
-            for source in data["sources"]
-        )
+    _normalize_options(data)
+    _normalize_bits(index, data)
+    _normalize_sources(data)
     return RegisterDefinition(**data)
 
 
@@ -459,19 +417,22 @@ def _validate_math_sources(registers: tuple[RegisterDefinition, ...]) -> None:
                 )
 
 
-def _load_registers(registers_data: list[Mapping]) -> tuple[RegisterDefinition, ...]:
-    """Load all register definitions in profile order."""
-    registers = tuple(
-        _load_register(index, register_data)
-        for index, register_data in enumerate(registers_data)
-    )
+def _validate_unique_keys(registers: tuple[RegisterDefinition, ...]) -> None:
+    """Reject duplicate register keys, ignoring letter case."""
     seen_keys: set[str] = set()
-    occupied: dict[tuple[str, int], list[tuple[str, int | None]]] = {}
     for register in registers:
         normalized_key = register.key.casefold()
         if normalized_key in seen_keys:
             raise ProfileError(f"duplicate register key: {register.key}")
         seen_keys.add(normalized_key)
+
+
+def _validate_no_address_overlap(
+    registers: tuple[RegisterDefinition, ...],
+) -> None:
+    """Reject overlapping same-function address claims."""
+    occupied: dict[tuple[str, int], list[tuple[str, int | None]]] = {}
+    for register in registers:
         if register.data_type == "math":
             continue
         assert register.address is not None
@@ -491,7 +452,22 @@ def _load_registers(registers_data: list[Mapping]) -> tuple[RegisterDefinition, 
                         f"{existing_key} and {register.key}"
                     )
             claims.append((register.key, register.bitmask))
+
+
+def _validate_registers(registers: tuple[RegisterDefinition, ...]) -> None:
+    """Run cross-register checks that need the full profile set."""
+    _validate_unique_keys(registers)
+    _validate_no_address_overlap(registers)
     _validate_math_sources(registers)
+
+
+def _load_registers(registers_data: list[Mapping]) -> tuple[RegisterDefinition, ...]:
+    """Load all register definitions in profile order."""
+    registers = tuple(
+        _load_register(index, register_data)
+        for index, register_data in enumerate(registers_data)
+    )
+    _validate_registers(registers)
     return registers
 
 
