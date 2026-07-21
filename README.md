@@ -31,6 +31,9 @@ Run `make help` to list all available commands.
 
 ## Device profiles
 
+See [PROFILES.md](PROFILES.md) for how to author YAML profiles, data types,
+and decode options.
+
 Production profiles live in `profiles/` and must load cleanly with every
 register supported by Rainbow. The test suite enforces this for each file in
 that directory.
