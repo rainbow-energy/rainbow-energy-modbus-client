@@ -314,6 +314,26 @@ def test_build_device_profile_rejects_duplicate_register_keys():
         )
 
 
+def test_build_device_profile_rejects_duplicate_register_keys_ignoring_case():
+    """Reject register keys that differ only by letter case."""
+    second_register = deepcopy(_VALID_PROFILE["registers"][0])
+    second_register["key"] = "Battery_SOC"
+    second_register["address"] = 101
+
+    with pytest.raises(
+        ProfileError,
+        match="duplicate register key: Battery_SOC",
+    ):
+        load_valid_profile(
+            profile_overrides={
+                "registers": [
+                    deepcopy(_VALID_PROFILE["registers"][0]),
+                    second_register,
+                ]
+            }
+        )
+
+
 def test_build_device_profile_rejects_overlapping_register_addresses():
     """Reject registers that claim the same address in the same function."""
     second_register = deepcopy(_VALID_PROFILE["registers"][0])

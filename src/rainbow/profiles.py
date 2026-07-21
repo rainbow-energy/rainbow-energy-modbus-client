@@ -210,9 +210,10 @@ def _load_registers(registers_data: list[Mapping]) -> tuple[RegisterDefinition, 
     seen_keys: set[str] = set()
     occupied: dict[tuple[str, int], list[tuple[str, int | None]]] = {}
     for register in registers:
-        if register.key in seen_keys:
+        normalized_key = register.key.casefold()
+        if normalized_key in seen_keys:
             raise ProfileError(f"duplicate register key: {register.key}")
-        seen_keys.add(register.key)
+        seen_keys.add(normalized_key)
         for offset in range(register.count):
             address = register.address + offset
             space = (register.function, address)
