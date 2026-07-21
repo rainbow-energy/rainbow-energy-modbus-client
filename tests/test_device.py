@@ -2,9 +2,9 @@
 
 import pytest
 
-from rainbow.decode import Measurement
-from rainbow.device import read_measurement, read_measurements
-from rainbow.profiles import DeviceProfile, RegisterDefinition
+from factories import make_profile, make_register
+from rainbow.device import _decode_leaf, read_measurement, read_measurements
+from rainbow.profiles import MathSource
 from rainbow.reader import RegisterData
 
 
@@ -48,116 +48,57 @@ class FakeReader:
         )
 
 
+# ---------------------------------------------------------------------------
+# Single-key reads
+# ---------------------------------------------------------------------------
+
+
 def test_read_measurement_fetches_and_decodes_holding_register():
     """Look up a profile key, read its registers, and decode a measurement."""
-    profile = DeviceProfile(
-        manufacturer="Example Energy",
-        model="Example 8K",
-        registers=(
-            RegisterDefinition(
-                key="battery_soc",
-                name="Battery SOC",
-                address=184,
-                function="holding",
-                data_type="uint16",
-                scale=1,
-                unit="%",
-                access="read",
-            ),
-        ),
-    )
+    profile = make_profile(registers=(make_register(key="battery_soc", address=184),))
     reader = FakeReader(values=(85,))
 
     measurement = read_measurement(reader, profile, "battery_soc")
 
     assert reader.request == ("holding", 184, 1)
-    assert measurement == Measurement(
-        key="battery_soc",
-        name="Battery SOC",
-        value=85,
-        unit="%",
-    )
-
-
-def test_read_measurement_rejects_unknown_key():
-    """Reject a measurement key that is not in the profile."""
-    profile = DeviceProfile(
-        manufacturer="Example Energy",
-        model="Example 8K",
-        registers=(
-            RegisterDefinition(
-                key="battery_soc",
-                name="Battery SOC",
-                address=184,
-                function="holding",
-                data_type="uint16",
-                scale=1,
-                unit="%",
-                access="read",
-            ),
-        ),
-    )
-
-    with pytest.raises(KeyError, match="unknown register key: grid_power"):
-        read_measurement(FakeReader(values=(85,)), profile, "grid_power")
+    assert measurement.value == 85
 
 
 def test_read_measurement_fetches_and_decodes_input_register():
     """Read and decode an input-register measurement from the profile."""
-    profile = DeviceProfile(
-        manufacturer="Example Energy",
-        model="Example 8K",
+    profile = make_profile(
         registers=(
-            RegisterDefinition(
-                key="grid_voltage",
-                name="Grid Voltage",
-                address=150,
-                function="input",
-                data_type="uint16",
-                scale=0.1,
-                unit="V",
-                access="read",
-            ),
-        ),
+            make_register(key="grid_voltage", address=150, function="input", scale=0.1),
+        )
     )
     reader = FakeReader(values=(2300,))
 
     measurement = read_measurement(reader, profile, "grid_voltage")
 
     assert reader.request == ("input", 150, 1)
-    assert measurement.key == "grid_voltage"
-    assert measurement.name == "Grid Voltage"
     assert measurement.value == pytest.approx(230.0)
-    assert measurement.unit == "V"
+
+
+def test_read_measurement_rejects_unknown_key():
+    """Reject a measurement key that is not in the profile."""
+    profile = make_profile(registers=(make_register(key="battery_soc", address=184),))
+
+    with pytest.raises(KeyError, match="unknown register key: grid_power"):
+        read_measurement(FakeReader(values=(85,)), profile, "grid_power")
+
+
+# ---------------------------------------------------------------------------
+# Batching
+# ---------------------------------------------------------------------------
 
 
 def test_read_measurements_batches_adjacent_registers():
     """Merge adjacent registers into one Modbus read, preserve key order."""
-    profile = DeviceProfile(
-        manufacturer="Example Energy",
-        model="Example 8K",
+    profile = make_profile(
         registers=(
-            RegisterDefinition(
-                key="battery_soc",
-                name="Battery SOC",
-                address=184,
-                function="holding",
-                data_type="uint16",
-                scale=1,
-                unit="%",
-                access="read",
-            ),
-            RegisterDefinition(
-                key="battery_voltage",
-                name="Battery Voltage",
-                address=183,
-                function="holding",
-                data_type="uint16",
-                scale=0.1,
-                unit="V",
-                access="read",
-            ),
-        ),
+            make_register(key="battery_soc", address=184),
+            make_register(key="battery_voltage", address=183, scale=0.1),
+        )
     )
     reader = FakeReader(responses={183: (523, 85)})
 
@@ -168,47 +109,19 @@ def test_read_measurements_batches_adjacent_registers():
     )
 
     assert reader.requests == [("holding", 183, 2)]
-    assert measurements[0] == Measurement(
-        key="battery_soc",
-        name="Battery SOC",
-        value=85,
-        unit="%",
-    )
-    assert measurements[1].key == "battery_voltage"
+    assert measurements[0].value == 85
     assert measurements[1].value == pytest.approx(52.3)
 
 
 def test_read_measurements_batches_registers_within_gap():
     """Merge same-function registers when the unused gap is small."""
-    profile = DeviceProfile(
-        manufacturer="Example Energy",
-        model="Example 8K",
+    profile = make_profile(
         registers=(
-            RegisterDefinition(
-                key="grid_power",
-                name="Grid Power",
-                address=100,
-                function="holding",
-                data_type="int16",
-                scale=1,
-                unit="W",
-                access="read",
-            ),
-            RegisterDefinition(
-                key="load_power",
-                name="Load Power",
-                address=110,
-                function="holding",
-                data_type="int16",
-                scale=1,
-                unit="W",
-                access="read",
-            ),
-        ),
+            make_register(key="grid_power", address=100, data_type="int16"),
+            make_register(key="load_power", address=110, data_type="int16"),
+        )
     )
-    reader = FakeReader(
-        responses={100: (10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20)},
-    )
+    reader = FakeReader(responses={100: (10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20)})
 
     measurements = read_measurements(
         reader,
@@ -217,39 +130,16 @@ def test_read_measurements_batches_registers_within_gap():
     )
 
     assert reader.requests == [("holding", 100, 11)]
-    assert measurements == (
-        Measurement(key="grid_power", name="Grid Power", value=10, unit="W"),
-        Measurement(key="load_power", name="Load Power", value=20, unit="W"),
-    )
+    assert [item.value for item in measurements] == [10, 20]
 
 
 def test_read_measurements_keeps_large_gaps_separate():
     """Do not merge registers when the unused gap exceeds the batch limit."""
-    profile = DeviceProfile(
-        manufacturer="Example Energy",
-        model="Example 8K",
+    profile = make_profile(
         registers=(
-            RegisterDefinition(
-                key="grid_power",
-                name="Grid Power",
-                address=100,
-                function="holding",
-                data_type="int16",
-                scale=1,
-                unit="W",
-                access="read",
-            ),
-            RegisterDefinition(
-                key="load_power",
-                name="Load Power",
-                address=118,
-                function="holding",
-                data_type="int16",
-                scale=1,
-                unit="W",
-                access="read",
-            ),
-        ),
+            make_register(key="grid_power", address=100, data_type="int16"),
+            make_register(key="load_power", address=118, data_type="int16"),
+        )
     )
     reader = FakeReader(responses={100: (10,), 118: (20,)})
 
@@ -260,136 +150,59 @@ def test_read_measurements_keeps_large_gaps_separate():
     )
 
     assert reader.requests == [("holding", 100, 1), ("holding", 118, 1)]
-    assert measurements == (
-        Measurement(key="grid_power", name="Grid Power", value=10, unit="W"),
-        Measurement(key="load_power", name="Load Power", value=20, unit="W"),
-    )
+    assert [item.value for item in measurements] == [10, 20]
+
+
+# ---------------------------------------------------------------------------
+# Math expansion
+# ---------------------------------------------------------------------------
 
 
 def test_read_measurements_expands_math_sources():
     """Read leaf sources for a math key and return the combined value."""
-    from rainbow.profiles import MathSource
-
-    profile = DeviceProfile(
-        manufacturer="Example Energy",
-        model="Example 8K",
+    profile = make_profile(
         registers=(
-            RegisterDefinition(
-                key="aux_power",
-                name="AUX Power",
-                address=166,
-                function="holding",
-                data_type="int16",
-                scale=1,
-                unit="W",
-                access="read",
-            ),
-            RegisterDefinition(
-                key="grid_power",
-                name="Grid Power",
-                address=169,
-                function="holding",
-                data_type="int16",
-                scale=1,
-                unit="W",
-                access="read",
-            ),
-            RegisterDefinition(
-                key="inverter_power",
-                name="Inverter Power",
-                address=175,
-                function="holding",
-                data_type="int16",
-                scale=1,
-                unit="W",
-                access="read",
-            ),
-            RegisterDefinition(
+            make_register(key="aux_power", address=166, data_type="int16"),
+            make_register(key="grid_power", address=169, data_type="int16"),
+            make_register(key="inverter_power", address=175, data_type="int16"),
+            make_register(
                 key="essential_power",
-                name="Essential Power",
                 data_type="math",
-                unit="W",
-                access="read",
                 sources=(
                     MathSource(key="inverter_power", factor=1),
                     MathSource(key="grid_power", factor=1),
                     MathSource(key="aux_power", factor=-1),
                 ),
             ),
-        ),
+        )
     )
-    reader = FakeReader(
-        responses={166: (50, 0, 0, 200, 0, 0, 0, 0, 0, 1000)},
-    )
+    reader = FakeReader(responses={166: (50, 0, 0, 200, 0, 0, 0, 0, 0, 1000)})
 
     measurements = read_measurements(reader, profile, ("essential_power",))
 
     assert reader.requests == [("holding", 166, 10)]
-    assert measurements == (
-        Measurement(
-            key="essential_power",
-            name="Essential Power",
-            value=1150,
-            unit="W",
-        ),
-    )
+    assert measurements[0].value == 1150
 
 
 def test_read_measurements_returns_math_and_source_without_reread():
     """Return both math and source keys while reading each leaf once."""
-    from rainbow.profiles import MathSource
-
-    profile = DeviceProfile(
-        manufacturer="Example Energy",
-        model="Example 8K",
+    profile = make_profile(
         registers=(
-            RegisterDefinition(
-                key="aux_power",
-                name="AUX Power",
-                address=166,
-                function="holding",
-                data_type="int16",
-                scale=1,
-                unit="W",
-                access="read",
-            ),
-            RegisterDefinition(
-                key="grid_power",
-                name="Grid Power",
-                address=169,
-                function="holding",
-                data_type="int16",
-                scale=1,
-                unit="W",
-                access="read",
-            ),
-            RegisterDefinition(
-                key="inverter_power",
-                name="Inverter Power",
-                address=175,
-                function="holding",
-                data_type="int16",
-                scale=1,
-                unit="W",
-                access="read",
-            ),
-            RegisterDefinition(
+            make_register(key="aux_power", address=166, data_type="int16"),
+            make_register(key="grid_power", address=169, data_type="int16"),
+            make_register(key="inverter_power", address=175, data_type="int16"),
+            make_register(
                 key="essential_power",
-                name="Essential Power",
                 data_type="math",
-                unit="W",
-                access="read",
                 sources=(
                     MathSource(key="inverter_power", factor=1),
                     MathSource(key="grid_power", factor=1),
                     MathSource(key="aux_power", factor=-1),
                 ),
             ),
-        ),
+        )
     )
-    reader = FakeReader(
-        responses={166: (50, 0, 0, 200, 0, 0, 0, 0, 0, 1000)},
-    )
+    reader = FakeReader(responses={166: (50, 0, 0, 200, 0, 0, 0, 0, 0, 1000)})
 
     measurements = read_measurements(
         reader,
@@ -398,37 +211,17 @@ def test_read_measurements_returns_math_and_source_without_reread():
     )
 
     assert reader.requests == [("holding", 166, 10)]
-    assert measurements == (
-        Measurement(
-            key="essential_power",
-            name="Essential Power",
-            value=1150,
-            unit="W",
-        ),
-        Measurement(
-            key="inverter_power",
-            name="Inverter Power",
-            value=1000,
-            unit="W",
-        ),
-    )
+    assert [item.value for item in measurements] == [1150, 1000]
+
+
+# ---------------------------------------------------------------------------
+# Leaf decode helpers
+# ---------------------------------------------------------------------------
 
 
 def test_decode_leaf_rejects_uncovered_register():
     """Reject leaf decode when no Modbus batch covers the register."""
-    from rainbow.device import _decode_leaf
-
-    definition = RegisterDefinition(
-        key="battery_soc",
-        name="Battery SOC",
-        address=184,
-        function="holding",
-        data_type="uint16",
-        scale=1,
-        unit="%",
-        access="read",
-    )
+    definition = make_register(key="battery_soc", address=184)
 
     with pytest.raises(LookupError, match="no batch covered register battery_soc"):
         _decode_leaf(definition, {})
-

@@ -1,6 +1,6 @@
 """Factories for building test doubles with minimal boilerplate."""
 
-from rainbow.profiles import RegisterDefinition
+from rainbow.profiles import DeviceProfile, RegisterDefinition
 
 
 def make_register(**overrides) -> RegisterDefinition:
@@ -18,3 +18,14 @@ def make_register(**overrides) -> RegisterDefinition:
     }
     values.update(overrides)
     return RegisterDefinition(**values)
+
+
+def make_profile(**overrides) -> DeviceProfile:
+    """Build a DeviceProfile, overriding only what the test needs."""
+    values = {
+        "manufacturer": "Example Energy",
+        "model": "Example 8K",
+        "registers": (),
+    }
+    values.update(overrides)
+    return DeviceProfile(**values)
