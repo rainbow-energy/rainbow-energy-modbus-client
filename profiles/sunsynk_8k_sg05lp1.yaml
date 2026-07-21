@@ -1,7 +1,8 @@
 # SunSynk / Deye single-phase hybrid register map for SYNK-8K-SG05LP1.
 # SunSynk single-phase register definitions (addresses and scales).
-# Omitted for now: enums, binary decode, math sensors,
+# Omitted for now: enum/option labels, binary on/off decode, math sensors,
 # non-contiguous multi-register values, and overlapping AUX aliases.
+# Bitmasked settings are promoted as raw masked integers until options land.
 manufacturer: Sunsynk
 model: SYNK-8K-SG05LP1
 registers:
@@ -533,3 +534,120 @@ registers:
     scale: 0.1
     unit: W
     access: read
+
+  - key: device_type
+    name: Device Type
+    address: 0
+    function: holding
+    data_type: uint16
+    scale: 1
+    unit: ""
+    access: read
+
+  - key: protocol
+    name: Protocol
+    address: 2
+    function: holding
+    data_type: uint16
+    scale: 1
+    unit: ""
+    access: read
+
+  - key: overall_state
+    name: Overall State
+    address: 59
+    function: holding
+    data_type: uint16
+    scale: 1
+    unit: ""
+    access: read
+
+  - key: grid_connected
+    name: Grid Connected
+    address: 194
+    function: holding
+    data_type: uint16
+    scale: 1
+    unit: ""
+    access: read
+
+  - key: grid_charge_enabled
+    name: Grid Charge Enabled
+    address: 232
+    function: holding
+    data_type: uint16
+    bitmask: 0x1
+    scale: 1
+    unit: ""
+    access: write
+
+  - key: priority_load
+    name: Priority Load
+    address: 243
+    function: holding
+    data_type: uint16
+    bitmask: 0x1
+    scale: 1
+    unit: ""
+    access: write
+
+  - key: solar_export
+    name: Solar Export
+    address: 247
+    function: holding
+    data_type: uint16
+    bitmask: 0x1
+    scale: 1
+    unit: ""
+    access: write
+
+  - key: use_timer
+    name: Use Timer
+    address: 248
+    function: holding
+    data_type: uint16
+    bitmask: 0x1
+    scale: 1
+    unit: ""
+    access: write
+
+  - key: peak_shaving
+    name: Peak Shaving
+    address: 280
+    function: holding
+    data_type: uint16
+    bitmask: 0x0F
+    scale: 1
+    unit: ""
+    access: write
+
+  - key: gen_peak_shaving
+    name: Gen Peak Shaving
+    address: 280
+    function: holding
+    data_type: uint16
+    bitmask: 0xF0
+    scale: 1
+    unit: ""
+    access: write
+
+  - key: grid_peak_shaving
+    name: Grid Peak Shaving
+    address: 280
+    function: holding
+    data_type: uint16
+    bitmask: 0xF00
+    scale: 1
+    unit: ""
+    access: write
+
+  - key: grid_always_on
+    name: Grid Always On
+    address: 280
+    function: holding
+    data_type: uint16
+    bitmask: 0xF000
+    scale: 1
+    unit: ""
+    access: write
+
