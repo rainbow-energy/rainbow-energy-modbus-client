@@ -472,6 +472,75 @@ def test_build_device_profile_supports_time_data_type():
     assert profile.registers[0].count == 1
 
 
+def test_build_device_profile_supports_fault_data_type():
+    """Allow a fault bitfield register with labeled bits."""
+    profile = load_valid_profile(
+        register_overrides={
+            "key": "fault",
+            "name": "Fault",
+            "data_type": "fault",
+            "count": 4,
+            "bits": {
+                13: "Working mode change",
+                18: "AC over current",
+            },
+        }
+    )
+
+    assert profile.registers[0].data_type == "fault"
+    assert profile.registers[0].count == 4
+    assert profile.registers[0].bits == {
+        13: "Working mode change",
+        18: "AC over current",
+    }
+
+
+def test_build_device_profile_rejects_fault_without_count():
+    """Require an explicit count for fault registers."""
+    with pytest.raises(
+        ProfileError,
+        match="profile registers.0: .*count.*required property",
+    ):
+        load_valid_profile(
+            register_overrides={
+                "key": "fault",
+                "name": "Fault",
+                "data_type": "fault",
+                "count": _DELETE,
+                "bits": {13: "Working mode change"},
+            }
+        )
+
+
+def test_build_device_profile_rejects_options_on_fault():
+    """Reject options on fault registers where they have no meaning."""
+    with pytest.raises(ProfileError):
+        load_valid_profile(
+            register_overrides={
+                "key": "fault",
+                "name": "Fault",
+                "data_type": "fault",
+                "count": 4,
+                "bits": {13: "Working mode change"},
+                "options": {0: "off"},
+            }
+        )
+
+
+def test_build_device_profile_rejects_fault_bit_out_of_range():
+    """Reject fault bit indexes outside the register word span."""
+    with pytest.raises(ProfileError, match="bit 65 out of range 1..64"):
+        load_valid_profile(
+            register_overrides={
+                "key": "fault",
+                "name": "Fault",
+                "data_type": "fault",
+                "count": 4,
+                "bits": {65: "Too high"},
+            }
+        )
+
+
 def test_build_device_profile_rejects_bitmask_on_protocol():
     """Reject bitmask on protocol registers where it has no meaning."""
     with pytest.raises(ProfileError):

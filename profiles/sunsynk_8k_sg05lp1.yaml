@@ -1411,3 +1411,27 @@ registers:
     options:
       1000: fault
       2000: ok
+
+  - key: fault
+    name: Fault
+    address: 103
+    function: holding
+    data_type: fault
+    count: 4
+    scale: 1
+    unit: ""
+    access: read
+    bits:
+      13: Working mode change
+      18: AC over current
+      20: DC over current
+      23: AC leak current or transient over current
+      24: DC insulation impedance
+      26: DC busbar imbalanced
+      29: Parallel comms cable
+      35: No AC grid
+      42: AC line low voltage
+      47: AC freq high/low
+      56: DC busbar voltage low
+      63: ARC fault
+      64: Heat sink tempfailure

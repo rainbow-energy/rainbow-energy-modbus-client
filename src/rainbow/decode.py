@@ -35,10 +35,29 @@ def _decode_string(values: Sequence[int]) -> str:
     return "".join(chr(word >> 8) + chr(word & 0xFF) for word in values).rstrip("\x00")
 
 
+def _decode_fault(
+    definition: RegisterDefinition, values: Sequence[int]
+) -> str:
+    """Decode set bits across words as comma-separated F-codes."""
+    labels = definition.bits or {}
+    faults: list[str] = []
+    offset = 0
+    for word in values:
+        for bit in range(16):
+            if word & (1 << bit):
+                number = bit + offset + 1
+                label = labels.get(number, "")
+                faults.append(f"F{number:02d} {label}".strip())
+        offset += 16
+    return ", ".join(faults)
+
+
 def _raw_value(definition: RegisterDefinition, values: Sequence[int]) -> float | int | str:
     """Interpret raw register words according to the data type."""
     if definition.data_type == "string":
         return _decode_string(values)
+    if definition.data_type == "fault":
+        return _decode_fault(definition, values)
     if definition.data_type == "float32":
         high, low = _ordered_words(definition, values)
         value = struct.unpack(">f", struct.pack(">HH", high, low))[0]

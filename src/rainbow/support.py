@@ -22,6 +22,7 @@ SUPPORTED_DATA_TYPES = frozenset(
         "math",
         "protocol",
         "time",
+        "fault",
     }
 )
 

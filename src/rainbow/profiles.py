@@ -20,6 +20,7 @@ _DATA_TYPE_COUNTS: dict[str, int | None] = {
     "time": 1,
     "string": None,
     "math": None,
+    "fault": None,
 }
 _NON_EMPTY_STRING_SCHEMA = {"type": "string", "pattern": r"\S"}
 _SOURCE_SCHEMA = {
@@ -33,6 +34,11 @@ _SOURCE_SCHEMA = {
             "not": {"const": 0},
         },
     },
+}
+_BITS_SCHEMA = {
+    "type": "object",
+    "minProperties": 1,
+    "additionalProperties": _NON_EMPTY_STRING_SCHEMA,
 }
 _REGISTER_SCHEMA = {
     "type": "object",
@@ -98,6 +104,7 @@ _REGISTER_SCHEMA = {
             "type": "boolean",
             "const": True,
         },
+        "bits": _BITS_SCHEMA,
         "sources": {
             "type": "array",
             "minItems": 1,
@@ -176,6 +183,29 @@ _REGISTER_SCHEMA = {
                         {"required": ["offset"]},
                         {"required": ["options"]},
                         {"required": ["binary"]},
+                        {"required": ["bits"]},
+                    ]
+                },
+            },
+        },
+        {
+            "if": {
+                "properties": {"data_type": {"const": "fault"}},
+                "required": ["data_type"],
+            },
+            "then": {
+                "required": ["count", "bits"],
+                "properties": {
+                    "count": {"type": "integer", "minimum": 1, "maximum": 125},
+                    "scale": {"const": 1},
+                },
+                "not": {
+                    "anyOf": [
+                        {"required": ["bitmask"]},
+                        {"required": ["word_order"]},
+                        {"required": ["offset"]},
+                        {"required": ["options"]},
+                        {"required": ["binary"]},
                     ]
                 },
             },
@@ -193,6 +223,7 @@ _REGISTER_SCHEMA = {
                         {"required": ["offset"]},
                         {"required": ["options"]},
                         {"required": ["binary"]},
+                        {"required": ["bits"]},
                     ]
                 },
             },
@@ -210,6 +241,7 @@ _REGISTER_SCHEMA = {
                         {"required": ["offset"]},
                         {"required": ["options"]},
                         {"required": ["binary"]},
+                        {"required": ["bits"]},
                     ]
                 },
             },
@@ -232,6 +264,7 @@ _REGISTER_SCHEMA = {
                         {"required": ["offset"]},
                         {"required": ["options"]},
                         {"required": ["binary"]},
+                        {"required": ["bits"]},
                     ]
                 },
             },
@@ -244,6 +277,7 @@ _REGISTER_SCHEMA = {
                     "anyOf": [
                         {"required": ["offset"]},
                         {"required": ["binary"]},
+                        {"required": ["bits"]},
                     ]
                 },
             },
@@ -256,8 +290,15 @@ _REGISTER_SCHEMA = {
                     "anyOf": [
                         {"required": ["offset"]},
                         {"required": ["options"]},
+                        {"required": ["bits"]},
                     ]
                 },
+            },
+        },
+        {
+            "if": {"required": ["bits"]},
+            "then": {
+                "properties": {"data_type": {"const": "fault"}},
             },
         },
     ],
@@ -311,6 +352,7 @@ class RegisterDefinition:
     offset: float | None = None
     options: dict[int, str] | None = None
     binary: bool = False
+    bits: dict[int, str] | None = None
     sources: tuple[MathSource, ...] | None = None
     no_negative: bool = False
     absolute: bool = False
@@ -350,6 +392,16 @@ def _load_register(index: int, register_data: Mapping) -> RegisterDefinition:
         data["options"] = {
             int(key): value for key, value in data["options"].items()
         }
+    if "bits" in data:
+        bits = {int(key): value for key, value in data["bits"].items()}
+        count = cast(int, data["count"])
+        max_bit = count * 16
+        for bit in bits:
+            if bit < 1 or bit > max_bit:
+                raise ProfileError(
+                    f"register {index} bit {bit} out of range 1..{max_bit}"
+                )
+        data["bits"] = bits
     if "sources" in data:
         data["sources"] = tuple(
             MathSource(key=source["key"], factor=source["factor"])

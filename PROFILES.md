@@ -68,12 +68,13 @@ Also require `address`, `function`, and `scale`:
 | `address` | First Modbus address (`0`–`65535`) |
 | `function` | `holding` or `input` |
 | `scale` | Non-zero multiplier after typed decode (`value = raw * scale`) |
-| `count` | Word count (fixed for most types; required for `string`) |
+| `count` | Word count (fixed for most types; required for `string` and `fault`) |
 | `word_order` | `big` or `little` (required for 32-bit types) |
 | `offset` | Optional; applied after scale: `(raw * scale) - offset` |
 | `bitmask` | Optional; AND each word before typed decode |
 | `options` | Optional; map integer → label string |
 | `binary` | Optional; `true` → nonzero (after mask) is `True` |
+| `bits` | Required for `fault`; map 1-based bit index → label string |
 
 Decode order for leaf registers: **bitmask → typed raw → options or binary or
 (scale then offset)**.
@@ -178,6 +179,29 @@ decode error. Require `scale: 1`. No `bitmask`, `offset`, `options`, or
     access: write
 ```
 
+### `fault`
+
+Multi-word bitfield of inverter fault flags. Require `count` (1–125),
+`scale: 1`, and `bits` (map of 1-based bit index → label). Bit 0 of the first
+word is **F01**. Set bits become `"F{nn}"` plus the label when known; unlabeled
+set bits still appear as bare `"F{nn}"`. Join with `", "`; clear registers
+decode to `""`. No `bitmask`, `offset`, `options`, `binary`, or `word_order`.
+
+```yaml
+  - key: fault
+    name: Fault
+    address: 103
+    function: holding
+    data_type: fault
+    count: 4
+    scale: 1
+    unit: ""
+    access: read
+    bits:
+      13: Working mode change
+      18: AC over current
+```
+
 ### `math`
 
 Derived value from other profile keys (engineering values, after those keys
@@ -217,8 +241,8 @@ Rules:
 ### `offset`
 
 After scale: `(raw * scale) - offset`. Useful for temperatures encoded with a
-bias (for example `offset: 100`). Not allowed with `string`, `options`,
-`binary`, or `math`.
+bias (for example `offset: 100`). Not allowed with `string`, `fault`,
+`options`, `binary`, or `math`.
 
 ### `bitmask`
 
@@ -274,7 +298,7 @@ Decoded `Measurement.value` types by feature:
 | Feature | Python type |
 |---------|-------------|
 | Numeric leaf | `int` or `float` |
-| `string` / `protocol` / `time` / `options` | `str` |
+| `string` / `protocol` / `time` / `options` / `fault` | `str` |
 | `binary` | `bool` |
 | `math` | `int` or `float` |
 
@@ -283,7 +307,6 @@ Decoded `Measurement.value` types by feature:
 These appear in some community maps but are not expressible in Rainbow today:
 
 - Non-contiguous multi-register values (for example energy across gaps)
-- Fault bitfield sensors
 - Date/time (system clock across multiple registers)
 - Nested math sources
 - Explicit binary `on` values (only nonzero-after-mask)

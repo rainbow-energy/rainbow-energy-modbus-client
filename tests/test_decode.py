@@ -52,6 +52,54 @@ def test_decode_protocol_version_string():
     )
 
 
+def test_decode_fault_labeled_bit():
+    """Decode a set fault bit as an F-code with its label."""
+    definition = RegisterDefinition(
+        key="fault",
+        name="Fault",
+        address=103,
+        function="holding",
+        data_type="fault",
+        count=4,
+        scale=1,
+        unit="",
+        access="read",
+        bits={13: "Working mode change"},
+    )
+
+    measurement = decode_register(definition, values=(1 << 12, 0, 0, 0))
+
+    assert measurement == Measurement(
+        key="fault",
+        name="Fault",
+        value="F13 Working mode change",
+        unit="",
+    )
+
+
+def test_decode_fault_unlabeled_empty_and_multiple():
+    """Decode unlabeled bits, clear registers, and multiple set bits."""
+    definition = RegisterDefinition(
+        key="fault",
+        name="Fault",
+        address=103,
+        function="holding",
+        data_type="fault",
+        count=4,
+        scale=1,
+        unit="",
+        access="read",
+        bits={13: "Working mode change"},
+    )
+
+    assert decode_register(definition, values=(0, 0, 0, 0)).value == ""
+    assert decode_register(definition, values=(0, 1 << 9, 0, 0)).value == "F26"
+    assert (
+        decode_register(definition, values=(1 << 12, 1 << 9, 0, 0)).value
+        == "F13 Working mode change, F26"
+    )
+
+
 def test_decode_protocol_version_bounds():
     """Decode the lowest and highest protocol version words."""
     definition = RegisterDefinition(
