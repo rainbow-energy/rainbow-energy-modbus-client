@@ -402,3 +402,20 @@ def test_decode_float32_rejects_nan():
 
     with pytest.raises(DecodeError, match="non-finite float32"):
         decode_register(definition, values=(0x7FC0, 0x0000))
+
+
+def test_decode_rejects_unknown_data_type():
+    """Reject data types that are not explicitly supported."""
+    definition = RegisterDefinition(
+        key="custom",
+        name="Custom",
+        address=0,
+        function="holding",
+        data_type="bool",
+        scale=1,
+        unit="",
+        access="read",
+    )
+
+    with pytest.raises(DecodeError, match="unsupported data_type: bool"):
+        decode_register(definition, values=(1,))

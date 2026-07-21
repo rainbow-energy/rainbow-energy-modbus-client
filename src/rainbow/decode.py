@@ -53,10 +53,14 @@ def _raw_value(definition: RegisterDefinition, values: Sequence[int]) -> float |
         if definition.data_type == "int32" and raw >= 0x8000_0000:
             return raw - 0x1_0000_0000
         return raw
-    raw = values[0]
-    if definition.data_type == "int16" and raw >= 0x8000:
-        return raw - 0x10000
-    return raw
+    if definition.data_type == "int16":
+        raw = values[0]
+        if raw >= 0x8000:
+            return raw - 0x10000
+        return raw
+    if definition.data_type == "uint16":
+        return values[0]
+    raise DecodeError(f"unsupported data_type: {definition.data_type}")
 
 
 def decode_register(
