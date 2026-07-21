@@ -22,6 +22,7 @@ SUPPORTED_DATA_TYPES = frozenset(
         "math",
         "protocol",
         "time",
+        "datetime",
         "fault",
     }
 )
@@ -40,6 +41,9 @@ def _probe_values(register: RegisterDefinition) -> tuple[int, ...]:
     if register.options:
         probe = next(iter(register.options))
         return (probe,) + (0,) * (register.count - 1)
+    if register.data_type == "datetime":
+        # 2000-01-01 0:00:00 with year offset 2000
+        return (1, 1 << 8, 0)
     return (0,) * register.count
 
 

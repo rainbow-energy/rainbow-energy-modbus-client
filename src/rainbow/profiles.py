@@ -18,6 +18,7 @@ _DATA_TYPE_COUNTS: dict[str, int | None] = {
     "float32": 2,
     "protocol": 1,
     "time": 1,
+    "datetime": 3,
     "string": None,
     "math": None,
     "fault": None,
@@ -136,11 +137,22 @@ _REGISTER_SCHEMA = {
                 **(
                     {"required": ["count", "word_order"]}
                     if required_count == 2
+                    else {"required": ["count"]}
+                    if required_count != 1
                     else {}
                 ),
                 **(
                     {"not": {"required": ["bitmask"]}}
                     if required_count == 2
+                    else {
+                        "not": {
+                            "anyOf": [
+                                {"required": ["bitmask"]},
+                                {"required": ["word_order"]},
+                            ]
+                        }
+                    }
+                    if required_count != 1
                     else {"not": {"required": ["word_order"]}}
                 ),
             },
@@ -238,6 +250,23 @@ _REGISTER_SCHEMA = {
                 "not": {
                     "anyOf": [
                         {"required": ["bitmask"]},
+                        {"required": ["offset"]},
+                        {"required": ["options"]},
+                        {"required": ["binary"]},
+                        {"required": ["bits"]},
+                    ]
+                },
+            },
+        },
+        {
+            "if": {
+                "properties": {"data_type": {"const": "datetime"}},
+                "required": ["data_type"],
+            },
+            "then": {
+                "properties": {"scale": {"const": 1}},
+                "not": {
+                    "anyOf": [
                         {"required": ["offset"]},
                         {"required": ["options"]},
                         {"required": ["binary"]},

@@ -90,6 +90,22 @@ def _raw_value(definition: RegisterDefinition, values: Sequence[int]) -> float |
                 f"invalid time minutes for {definition.key}: {raw}"
             )
         return f"{hours % 24}:{minutes:02d}"
+    if definition.data_type == "datetime":
+        year = ((values[0] & 0xFF00) >> 8) + 2000
+        month = values[0] & 0xFF
+        day = (values[1] & 0xFF00) >> 8
+        hour = values[1] & 0xFF
+        minute = (values[2] & 0xFF00) >> 8
+        second = values[2] & 0xFF
+        if not (
+            1 <= month <= 12
+            and 1 <= day <= 31
+            and 0 <= hour <= 23
+            and 0 <= minute <= 59
+            and 0 <= second <= 59
+        ):
+            raise DecodeError(f"invalid datetime for {definition.key}")
+        return f"{year}-{month:02d}-{day:02d} {hour}:{minute:02d}:{second:02d}"
     raise DecodeError(f"unsupported data_type: {definition.data_type}")
 
 

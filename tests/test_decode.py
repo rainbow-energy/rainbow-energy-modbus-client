@@ -140,6 +140,54 @@ def test_decode_time_as_clock_string():
     )
 
 
+def test_decode_datetime_as_string():
+    """Decode three packed words as a SunSynk-style datetime string."""
+    definition = RegisterDefinition(
+        key="date_time",
+        name="Date Time",
+        address=22,
+        function="holding",
+        data_type="datetime",
+        count=3,
+        scale=1,
+        unit="",
+        access="write",
+    )
+
+    measurement = decode_register(
+        definition,
+        values=((24 << 8) + 3, (15 << 8) + 8, (30 << 8) + 5),
+    )
+
+    assert measurement == Measurement(
+        key="date_time",
+        name="Date Time",
+        value="2024-03-15 8:30:05",
+        unit="",
+    )
+
+
+def test_decode_datetime_rejects_invalid_fields():
+    """Reject datetime words with out-of-range calendar fields."""
+    definition = RegisterDefinition(
+        key="date_time",
+        name="Date Time",
+        address=22,
+        function="holding",
+        data_type="datetime",
+        count=3,
+        scale=1,
+        unit="",
+        access="write",
+    )
+
+    with pytest.raises(DecodeError, match="invalid datetime for date_time"):
+        decode_register(
+            definition,
+            values=((24 << 8) + 13, (15 << 8) + 8, (30 << 8) + 5),
+        )
+
+
 def test_decode_time_rejects_invalid_minutes():
     """Reject packed times whose minute field is 60 or greater."""
     definition = RegisterDefinition(

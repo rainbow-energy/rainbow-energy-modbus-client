@@ -68,7 +68,7 @@ Also require `address`, `function`, and `scale`:
 | `address` | First Modbus address (`0`–`65535`) |
 | `function` | `holding` or `input` |
 | `scale` | Non-zero multiplier after typed decode (`value = raw * scale`) |
-| `count` | Word count (fixed for most types; required for `string` and `fault`) |
+| `count` | Word count (fixed for most types; required for `string`, `fault`, and `datetime`) |
 | `word_order` | `big` or `little` (required for 32-bit types) |
 | `offset` | Optional; applied after scale: `(raw * scale) - offset` |
 | `bitmask` | Optional; AND each word before typed decode |
@@ -179,6 +179,27 @@ decode error. Require `scale: 1`. No `bitmask`, `offset`, `options`, or
     access: write
 ```
 
+### `datetime`
+
+Three words packing the inverter system clock (SunSynk system-time
+layout). Year is stored as an offset from 2000 in the high byte of the first
+word. Decoded as `"YYYY-MM-DD H:MM:SS"` (hour is not zero-padded). Require
+`count: 3` and `scale: 1`. Out-of-range month/day/hour/minute/second raise a
+decode error. No `bitmask`, `offset`, `options`, `binary`, `bits`, or
+`word_order`.
+
+```yaml
+  - key: date_time
+    name: Date Time
+    address: 22
+    function: holding
+    data_type: datetime
+    count: 3
+    scale: 1
+    unit: ""
+    access: write
+```
+
 ### `fault`
 
 Multi-word bitfield of inverter fault flags. Require `count` (1–125),
@@ -242,7 +263,7 @@ Rules:
 
 After scale: `(raw * scale) - offset`. Useful for temperatures encoded with a
 bias (for example `offset: 100`). Not allowed with `string`, `fault`,
-`options`, `binary`, or `math`.
+`datetime`, `options`, `binary`, or `math`.
 
 ### `bitmask`
 
@@ -298,7 +319,7 @@ Decoded `Measurement.value` types by feature:
 | Feature | Python type |
 |---------|-------------|
 | Numeric leaf | `int` or `float` |
-| `string` / `protocol` / `time` / `options` / `fault` | `str` |
+| `string` / `protocol` / `time` / `datetime` / `options` / `fault` | `str` |
 | `binary` | `bool` |
 | `math` | `int` or `float` |
 
@@ -307,7 +328,6 @@ Decoded `Measurement.value` types by feature:
 These appear in some community maps but are not expressible in Rainbow today:
 
 - Non-contiguous multi-register values (for example energy across gaps)
-- Date/time (system clock across multiple registers)
 - Nested math sources
 - Explicit binary `on` values (only nonzero-after-mask)
 

@@ -472,6 +472,64 @@ def test_build_device_profile_supports_time_data_type():
     assert profile.registers[0].count == 1
 
 
+def test_build_device_profile_supports_datetime_data_type():
+    """Allow a three-word system clock register."""
+    profile = load_valid_profile(
+        register_overrides={
+            "key": "date_time",
+            "name": "Date Time",
+            "data_type": "datetime",
+            "count": 3,
+        }
+    )
+
+    assert profile.registers[0].data_type == "datetime"
+    assert profile.registers[0].count == 3
+
+
+def test_build_device_profile_rejects_datetime_without_count():
+    """Require an explicit count for datetime registers."""
+    with pytest.raises(
+        ProfileError,
+        match="profile registers.0: .*count.*required property",
+    ):
+        load_valid_profile(
+            register_overrides={
+                "key": "date_time",
+                "name": "Date Time",
+                "data_type": "datetime",
+                "count": _DELETE,
+            }
+        )
+
+
+def test_build_device_profile_rejects_datetime_wrong_count():
+    """Require datetime registers to span exactly three words."""
+    with pytest.raises(ProfileError, match="profile registers.0.count: "):
+        load_valid_profile(
+            register_overrides={
+                "key": "date_time",
+                "name": "Date Time",
+                "data_type": "datetime",
+                "count": 2,
+            }
+        )
+
+
+def test_build_device_profile_rejects_options_on_datetime():
+    """Reject options on datetime registers where they have no meaning."""
+    with pytest.raises(ProfileError):
+        load_valid_profile(
+            register_overrides={
+                "key": "date_time",
+                "name": "Date Time",
+                "data_type": "datetime",
+                "count": 3,
+                "options": {0: "off"},
+            }
+        )
+
+
 def test_build_device_profile_supports_fault_data_type():
     """Allow a fault bitfield register with labeled bits."""
     profile = load_valid_profile(

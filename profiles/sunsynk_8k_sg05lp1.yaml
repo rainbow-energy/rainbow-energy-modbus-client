@@ -1435,3 +1435,13 @@ registers:
       56: DC busbar voltage low
       63: ARC fault
       64: Heat sink tempfailure
+
+  - key: date_time
+    name: Date Time
+    address: 22
+    function: holding
+    data_type: datetime
+    count: 3
+    scale: 1
+    unit: ""
+    access: write
