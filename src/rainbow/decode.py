@@ -7,6 +7,26 @@ from dataclasses import dataclass
 
 from rainbow.profiles import RegisterDefinition
 
+_BITS_PER_BYTE = 8
+_BITS_PER_REGISTER = 16
+_BYTE_MASK = 0xFF
+_HIGH_BYTE_MASK = 0xFF00
+_INT16_SIGN = 0x8000
+_UINT16_RANGE = 0x10000
+_INT32_SIGN = 0x8000_0000
+_UINT32_RANGE = 0x1_0000_0000
+_HHMM_FACTOR = 100
+_MINUTES_PER_HOUR = 60
+_HOURS_PER_DAY = 24
+_DATETIME_YEAR_BASE = 2000
+_MIN_MONTH = 1
+_MAX_MONTH = 12
+_MIN_DAY = 1
+_MAX_DAY = 31
+_MAX_HOUR = 23
+_MAX_MINUTE = 59
+_MAX_SECOND = 59
+
 
 class DecodeError(ValueError):
     """Raised when raw register values cannot be decoded."""
@@ -32,7 +52,9 @@ def _ordered_words(definition: RegisterDefinition, values: Sequence[int]) -> tup
 
 def _decode_string(values: Sequence[int]) -> str:
     """Decode ASCII characters packed two per 16-bit register."""
-    return "".join(chr(word >> 8) + chr(word & 0xFF) for word in values).rstrip("\x00")
+    return "".join(
+        chr(word >> _BITS_PER_BYTE) + chr(word & _BYTE_MASK) for word in values
+    ).rstrip("\x00")
 
 
 def _decode_fault(
@@ -43,12 +65,12 @@ def _decode_fault(
     faults: list[str] = []
     offset = 0
     for word in values:
-        for bit in range(16):
+        for bit in range(_BITS_PER_REGISTER):
             if word & (1 << bit):
                 number = bit + offset + 1
                 label = labels.get(number, "")
                 faults.append(f"F{number:02d} {label}".strip())
-        offset += 16
+        offset += _BITS_PER_REGISTER
     return ", ".join(faults)
 
 
@@ -70,53 +92,53 @@ def _decode_int32(
 ) -> int:
     """Decode a signed or unsigned 32-bit integer from two words."""
     high, low = _ordered_words(definition, values)
-    raw = (high << 16) | low
-    if definition.data_type == "int32" and raw >= 0x8000_0000:
-        return raw - 0x1_0000_0000
+    raw = (high << _BITS_PER_REGISTER) | low
+    if definition.data_type == "int32" and raw >= _INT32_SIGN:
+        return raw - _UINT32_RANGE
     return raw
 
 
 def _decode_int16(values: Sequence[int]) -> int:
     """Decode a signed 16-bit integer from one register word."""
     raw = values[0]
-    if raw >= 0x8000:
-        return raw - 0x10000
+    if raw >= _INT16_SIGN:
+        return raw - _UINT16_RANGE
     return raw
 
 
 def _decode_protocol(values: Sequence[int]) -> str:
     """Decode a major.minor protocol version from one register."""
     raw = values[0]
-    return f"{raw >> 8}.{raw & 0xFF}"
+    return f"{raw >> _BITS_PER_BYTE}.{raw & _BYTE_MASK}"
 
 
 def _decode_time(definition: RegisterDefinition, values: Sequence[int]) -> str:
     """Decode HHMM-packed minutes into a clock string."""
     raw = values[0]
-    hours, minutes = divmod(raw, 100)
-    if minutes >= 60:
+    hours, minutes = divmod(raw, _HHMM_FACTOR)
+    if minutes >= _MINUTES_PER_HOUR:
         raise DecodeError(
             f"invalid time minutes for {definition.key}: {raw}"
         )
-    return f"{hours % 24}:{minutes:02d}"
+    return f"{hours % _HOURS_PER_DAY}:{minutes:02d}"
 
 
 def _decode_datetime(
     definition: RegisterDefinition, values: Sequence[int]
 ) -> str:
     """Decode SunSynk three-word datetime into an ISO-like string."""
-    year = ((values[0] & 0xFF00) >> 8) + 2000
-    month = values[0] & 0xFF
-    day = (values[1] & 0xFF00) >> 8
-    hour = values[1] & 0xFF
-    minute = (values[2] & 0xFF00) >> 8
-    second = values[2] & 0xFF
+    year = ((values[0] & _HIGH_BYTE_MASK) >> _BITS_PER_BYTE) + _DATETIME_YEAR_BASE
+    month = values[0] & _BYTE_MASK
+    day = (values[1] & _HIGH_BYTE_MASK) >> _BITS_PER_BYTE
+    hour = values[1] & _BYTE_MASK
+    minute = (values[2] & _HIGH_BYTE_MASK) >> _BITS_PER_BYTE
+    second = values[2] & _BYTE_MASK
     if not (
-        1 <= month <= 12
-        and 1 <= day <= 31
-        and 0 <= hour <= 23
-        and 0 <= minute <= 59
-        and 0 <= second <= 59
+        _MIN_MONTH <= month <= _MAX_MONTH
+        and _MIN_DAY <= day <= _MAX_DAY
+        and 0 <= hour <= _MAX_HOUR
+        and 0 <= minute <= _MAX_MINUTE
+        and 0 <= second <= _MAX_SECOND
     ):
         raise DecodeError(f"invalid datetime for {definition.key}")
     return f"{year}-{month:02d}-{day:02d} {hour}:{minute:02d}:{second:02d}"
