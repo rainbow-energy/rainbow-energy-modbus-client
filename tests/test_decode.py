@@ -164,6 +164,74 @@ def test_decode_rejects_options_on_non_integer_value():
         decode_register(definition, values=(16256, 0))
 
 
+def test_decode_applies_binary():
+    """Map a nonzero masked register to True."""
+    definition = RegisterDefinition(
+        key="grid_charge_enabled",
+        name="Grid Charge Enabled",
+        address=232,
+        function="holding",
+        data_type="uint16",
+        scale=1,
+        unit="",
+        access="write",
+        bitmask=0x1,
+        binary=True,
+    )
+
+    measurement = decode_register(definition, values=(0x5,))
+
+    assert measurement == Measurement(
+        key="grid_charge_enabled",
+        name="Grid Charge Enabled",
+        value=True,
+        unit="",
+    )
+
+
+def test_decode_binary_zero_is_false():
+    """Map a zero masked register to False."""
+    definition = RegisterDefinition(
+        key="grid_charge_enabled",
+        name="Grid Charge Enabled",
+        address=232,
+        function="holding",
+        data_type="uint16",
+        scale=1,
+        unit="",
+        access="write",
+        bitmask=0x1,
+        binary=True,
+    )
+
+    measurement = decode_register(definition, values=(0x4,))
+
+    assert measurement.value is False
+
+
+def test_decode_rejects_binary_on_non_integer_value():
+    """Reject binary when the decoded raw value is not an integer."""
+    definition = RegisterDefinition(
+        key="status",
+        name="Status",
+        address=10,
+        function="holding",
+        data_type="float32",
+        scale=1,
+        unit="",
+        access="read",
+        count=2,
+        word_order="big",
+        binary=True,
+    )
+
+    with pytest.raises(
+        DecodeError,
+        match="binary requires an integer value for status",
+    ):
+        decode_register(definition, values=(16256, 0))
+
+
 def test_decode_int16_signed_value():
     """Decode a signed 16-bit register as two's complement."""
     definition = RegisterDefinition(

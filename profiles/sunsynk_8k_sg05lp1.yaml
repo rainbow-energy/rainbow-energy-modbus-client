@@ -1,9 +1,9 @@
 # SunSynk / Deye single-phase hybrid register map for SYNK-8K-SG05LP1.
 # SunSynk single-phase register definitions (addresses and scales).
-# Omitted for now: binary on/off decode, math sensors,
-# non-contiguous multi-register values, and overlapping AUX aliases.
-# Bitmasked settings remain raw masked integers until binary on/off decode.
+# Omitted for now: math sensors, non-contiguous multi-register values,
+# and overlapping AUX aliases.
 # Protocol stays numeric until a version-string decode exists.
+# Binary switches use nonzero-after-mask = True (no explicit on value yet).
 manufacturer: Sunsynk
 model: SYNK-8K-SG05LP1
 registers:
@@ -588,6 +588,7 @@ registers:
     scale: 1
     unit: ""
     access: read
+    binary: true
 
   - key: grid_charge_enabled
     name: Grid Charge Enabled
@@ -598,6 +599,7 @@ registers:
     scale: 1
     unit: ""
     access: write
+    binary: true
 
   - key: priority_load
     name: Priority Load
@@ -608,6 +610,7 @@ registers:
     scale: 1
     unit: ""
     access: write
+    binary: true
 
   - key: solar_export
     name: Solar Export
@@ -618,6 +621,7 @@ registers:
     scale: 1
     unit: ""
     access: write
+    binary: true
 
   - key: use_timer
     name: Use Timer
@@ -628,6 +632,7 @@ registers:
     scale: 1
     unit: ""
     access: write
+    binary: true
 
   - key: peak_shaving
     name: Peak Shaving
@@ -638,6 +643,7 @@ registers:
     scale: 1
     unit: ""
     access: write
+    binary: true
 
   - key: gen_peak_shaving
     name: Gen Peak Shaving
@@ -648,6 +654,7 @@ registers:
     scale: 1
     unit: ""
     access: write
+    binary: true
 
   - key: grid_peak_shaving
     name: Grid Peak Shaving
@@ -658,6 +665,7 @@ registers:
     scale: 1
     unit: ""
     access: write
+    binary: true
 
   - key: grid_always_on
     name: Grid Always On
@@ -668,4 +676,5 @@ registers:
     scale: 1
     unit: ""
     access: write
+    binary: true
 

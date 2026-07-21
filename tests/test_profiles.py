@@ -445,6 +445,13 @@ def test_build_device_profile_supports_options():
     }
 
 
+def test_build_device_profile_supports_binary():
+    """Allow a register definition to decode as an on/off boolean."""
+    profile = load_valid_profile(register_overrides={"binary": True})
+
+    assert profile.registers[0].binary is True
+
+
 def test_load_profile_supports_multi_register_value():
     """Load a value spanning multiple Modbus registers."""
     profile = load_valid_profile(

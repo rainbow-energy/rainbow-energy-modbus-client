@@ -18,7 +18,7 @@ class Measurement:
 
     key: str
     name: str
-    value: float | int | str
+    value: float | int | str | bool
     unit: str
 
 
@@ -76,13 +76,19 @@ def decode_register(
     if definition.bitmask is not None:
         values = tuple(value & definition.bitmask for value in values)
     raw = _raw_value(definition, values)
-    if definition.options is not None:
+    if definition.binary:
+        if not isinstance(raw, int):
+            raise DecodeError(
+                f"binary requires an integer value for {definition.key}"
+            )
+        value: float | int | str | bool = raw != 0
+    elif definition.options is not None:
         if not isinstance(raw, int):
             raise DecodeError(
                 f"options require an integer value for {definition.key}"
             )
         try:
-            value: float | int | str = definition.options[raw]
+            value = definition.options[raw]
         except KeyError as error:
             raise DecodeError(
                 f"unknown option {raw} for {definition.key}"

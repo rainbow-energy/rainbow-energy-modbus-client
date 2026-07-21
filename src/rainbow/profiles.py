@@ -82,6 +82,10 @@ _REGISTER_SCHEMA = {
             "minProperties": 1,
             "additionalProperties": _NON_EMPTY_STRING_SCHEMA,
         },
+        "binary": {
+            "type": "boolean",
+            "const": True,
+        },
     },
     "allOf": [
         {
@@ -136,6 +140,7 @@ _REGISTER_SCHEMA = {
                         {"required": ["word_order"]},
                         {"required": ["offset"]},
                         {"required": ["options"]},
+                        {"required": ["binary"]},
                     ]
                 },
             },
@@ -144,7 +149,24 @@ _REGISTER_SCHEMA = {
             "if": {"required": ["options"]},
             "then": {
                 "properties": {"scale": {"const": 1}},
-                "not": {"required": ["offset"]},
+                "not": {
+                    "anyOf": [
+                        {"required": ["offset"]},
+                        {"required": ["binary"]},
+                    ]
+                },
+            },
+        },
+        {
+            "if": {"required": ["binary"]},
+            "then": {
+                "properties": {"scale": {"const": 1}},
+                "not": {
+                    "anyOf": [
+                        {"required": ["offset"]},
+                        {"required": ["options"]},
+                    ]
+                },
             },
         },
     ],
@@ -189,6 +211,7 @@ class RegisterDefinition:
     bitmask: int | None = None
     offset: float | None = None
     options: dict[int, str] | None = None
+    binary: bool = False
 
 
 @dataclass(frozen=True, slots=True)
