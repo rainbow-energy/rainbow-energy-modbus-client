@@ -68,6 +68,28 @@ def test_decode_uint16_applies_scale():
     assert measurement.unit == "V"
 
 
+def test_decode_applies_offset_after_scale():
+    """Subtract an engineering offset after scaling."""
+    definition = RegisterDefinition(
+        key="battery_temperature",
+        name="Battery Temperature",
+        address=182,
+        function="holding",
+        data_type="uint16",
+        scale=0.1,
+        unit="°C",
+        access="read",
+        offset=100,
+    )
+
+    measurement = decode_register(definition, values=(1250,))
+
+    assert measurement.key == "battery_temperature"
+    assert measurement.name == "Battery Temperature"
+    assert measurement.value == pytest.approx(25.0)
+    assert measurement.unit == "°C"
+
+
 def test_decode_int16_signed_value():
     """Decode a signed 16-bit register as two's complement."""
     definition = RegisterDefinition(

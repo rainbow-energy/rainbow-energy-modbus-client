@@ -76,7 +76,12 @@ def decode_register(
     if definition.bitmask is not None:
         values = tuple(value & definition.bitmask for value in values)
     raw = _raw_value(definition, values)
-    value = raw if isinstance(raw, str) else raw * definition.scale
+    if isinstance(raw, str):
+        value: float | int | str = raw
+    else:
+        value = raw * definition.scale
+        if definition.offset is not None:
+            value -= definition.offset
     return Measurement(
         key=definition.key,
         name=definition.name,

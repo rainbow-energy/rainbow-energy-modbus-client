@@ -11,7 +11,7 @@
 # - total_grid_import (non-contiguous registers 78+80)
 # - fault (FaultSensor 103-106)
 # - date_time (datetime registers 22-24)
-# - temperature offset (-100), enum/options labels, binary on/off decode
+# - enum/options labels, binary on/off decode
 #
 # Run: make check-profile PROFILE=profiles/draft/sunsynk_8k_sg05lp1.yaml
 manufacturer: Sunsynk
@@ -51,6 +51,7 @@ registers:
     function: holding
     data_type: uint16
     scale: 0.1
+    offset: 100
     unit: "\u00b0C"
     access: read
 
@@ -575,6 +576,7 @@ registers:
     function: holding
     data_type: uint16
     scale: 0.1
+    offset: 100
     unit: "\u00b0C"
     access: read
 
@@ -584,6 +586,7 @@ registers:
     function: holding
     data_type: uint16
     scale: 0.1
+    offset: 100
     unit: "\u00b0C"
     access: read
 
@@ -593,6 +596,7 @@ registers:
     function: holding
     data_type: uint16
     scale: 0.1
+    offset: 100
     unit: "\u00b0C"
     access: read
 

@@ -417,6 +417,13 @@ def test_build_device_profile_supports_bitmask():
     assert profile.registers[0].bitmask == 0x03
 
 
+def test_build_device_profile_supports_offset():
+    """Allow a register definition to subtract an engineering offset."""
+    profile = load_valid_profile(register_overrides={"offset": 100})
+
+    assert profile.registers[0].offset == 100
+
+
 def test_load_profile_supports_multi_register_value():
     """Load a value spanning multiple Modbus registers."""
     profile = load_valid_profile(
@@ -559,6 +566,18 @@ def test_build_device_profile_rejects_bitmask_on_string():
                 "data_type": "string",
                 "count": 5,
                 "bitmask": 0xFF,
+            }
+        )
+
+
+def test_build_device_profile_rejects_offset_on_string():
+    """Reject offset on string registers where it has no meaning."""
+    with pytest.raises(ProfileError):
+        load_valid_profile(
+            register_overrides={
+                "data_type": "string",
+                "count": 5,
+                "offset": 100,
             }
         )
 

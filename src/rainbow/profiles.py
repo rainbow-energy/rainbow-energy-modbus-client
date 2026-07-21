@@ -74,6 +74,9 @@ _REGISTER_SCHEMA = {
             "minimum": 1,
             "maximum": 65535,
         },
+        "offset": {
+            "type": "number",
+        },
     },
     "allOf": [
         {
@@ -126,6 +129,7 @@ _REGISTER_SCHEMA = {
                     "anyOf": [
                         {"required": ["bitmask"]},
                         {"required": ["word_order"]},
+                        {"required": ["offset"]},
                     ]
                 },
             },
@@ -170,6 +174,7 @@ class RegisterDefinition:
     count: int = 1
     word_order: str | None = None
     bitmask: int | None = None
+    offset: float | None = None
 
 
 @dataclass(frozen=True, slots=True)
