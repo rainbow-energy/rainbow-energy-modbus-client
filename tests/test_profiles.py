@@ -6,7 +6,6 @@ from unittest.mock import mock_open, patch
 import pytest
 
 from rainbow.profiles import (
-    DeviceProfile,
     ProfileError,
     build_device_profile,
     load_profile,
@@ -37,7 +36,15 @@ def test_load_profile_from_yaml():
     yaml_text = """
 manufacturer: Example Energy
 model: Example 8K
-registers: []
+registers:
+  - key: battery_soc
+    name: Battery SOC
+    address: 100
+    function: holding
+    data_type: uint16
+    scale: 1
+    unit: percent
+    access: read
 """
     profile_file = mock_open(read_data=yaml_text)
 
@@ -45,11 +52,10 @@ registers: []
         profile = load_profile("profile.yaml")
 
     profile_file.assert_called_once_with(encoding="utf-8")
-    assert profile == DeviceProfile(
-        manufacturer="Example Energy",
-        model="Example 8K",
-        registers=(),
-    )
+    assert profile.manufacturer == "Example Energy"
+    assert profile.model == "Example 8K"
+    assert len(profile.registers) == 1
+    assert profile.registers[0].key == "battery_soc"
 
 
 def test_load_profile_wraps_invalid_yaml():
@@ -145,6 +151,15 @@ def test_load_profile_rejects_null_or_empty_string_registers(registers):
         match="profile registers: .* is not of type 'array'",
     ):
         load_valid_profile(profile_overrides={"registers": registers})
+
+
+def test_load_profile_rejects_empty_registers():
+    """Reject a profile with no register definitions."""
+    with pytest.raises(
+        ProfileError,
+        match="profile registers: .*should be non-empty",
+    ):
+        load_valid_profile(profile_overrides={"registers": []})
 
 
 def test_load_profile_rejects_non_list_registers():

@@ -143,6 +143,7 @@ _PROFILE_VALIDATOR = Draft202012Validator(
             "model": _NON_EMPTY_STRING_SCHEMA,
             "registers": {
                 "type": "array",
+                "minItems": 1,
                 "items": _REGISTER_SCHEMA,
             },
         },
