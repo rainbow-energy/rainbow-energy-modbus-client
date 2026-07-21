@@ -29,8 +29,15 @@ def _ordered_words(definition: RegisterDefinition, values: Sequence[int]) -> tup
     return first, second
 
 
-def _raw_value(definition: RegisterDefinition, values: Sequence[int]) -> float | int:
+def _decode_string(values: Sequence[int]) -> str:
+    """Decode ASCII characters packed two per 16-bit register."""
+    return "".join(chr(word >> 8) + chr(word & 0xFF) for word in values).rstrip("\x00")
+
+
+def _raw_value(definition: RegisterDefinition, values: Sequence[int]) -> float | int | str:
     """Interpret raw register words according to the data type."""
+    if definition.data_type == "string":
+        return _decode_string(values)
     if definition.data_type == "float32":
         high, low = _ordered_words(definition, values)
         return struct.unpack(">f", struct.pack(">HH", high, low))[0]
@@ -58,9 +65,11 @@ def decode_register(
         )
     if definition.bitmask is not None:
         values = tuple(value & definition.bitmask for value in values)
+    raw = _raw_value(definition, values)
+    value = raw if isinstance(raw, str) else raw * definition.scale
     return Measurement(
         key=definition.key,
         name=definition.name,
-        value=_raw_value(definition, values) * definition.scale,
+        value=value,
         unit=definition.unit,
     )

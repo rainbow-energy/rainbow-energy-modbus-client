@@ -9,32 +9,29 @@ from rainbow.support import UnsupportedFeature, check_profile_support, main
 
 def test_check_profile_support_reports_unsupported_data_type():
     """Report register data types the decoder cannot handle."""
-    profile = build_device_profile(
-        {
-            "manufacturer": "Example Energy",
-            "model": "Example 8K",
-            "registers": [
-                {
-                    "key": "serial",
-                    "name": "Serial",
-                    "address": 0,
-                    "function": "holding",
-                    "data_type": "string",
-                    "count": 5,
-                    "scale": 1,
-                    "unit": "",
-                    "access": "read",
-                }
-            ],
-        }
+    profile = DeviceProfile(
+        manufacturer="Example Energy",
+        model="Example 8K",
+        registers=(
+            RegisterDefinition(
+                key="custom",
+                name="Custom",
+                address=0,
+                function="holding",
+                data_type="bool",
+                scale=1,
+                unit="",
+                access="read",
+            ),
+        ),
     )
 
     issues = check_profile_support(profile)
 
     assert issues == (
         UnsupportedFeature(
-            key="serial",
-            reason="unsupported data_type: string",
+            key="custom",
+            reason="unsupported data_type: bool",
         ),
     )
 
@@ -122,31 +119,32 @@ def test_check_profile_support_accepts_supported_registers():
 
 
 def test_check_profile_script_reports_unsupported_features(tmp_path, capsys):
-    """Print unsupported features and exit non-zero for a bad profile."""
+    """Print unsupported features and exit non-zero for a decodable profile."""
     profile_path = tmp_path / "bad.yaml"
     profile_path.write_text(
         """
 manufacturer: Example Energy
 model: Example 8K
 registers:
-  - key: serial
-    name: Serial
-    address: 0
+  - key: battery_soc
+    name: Battery SOC
+    address: 184
     function: holding
-    data_type: string
-    count: 5
+    data_type: uint16
     scale: 1
-    unit: ""
+    unit: "%"
     access: read
 """,
         encoding="utf-8",
     )
 
-    exit_code = main([str(profile_path)])
+    with patch("rainbow.support.decode_register", side_effect=RuntimeError("boom")):
+        exit_code = main([str(profile_path)])
     captured = capsys.readouterr()
 
     assert exit_code == 1
-    assert "serial: unsupported data_type: string" in captured.err
+    assert "1 unsupported feature" in captured.err
+    assert "battery_soc: decode failed: boom" in captured.err
 
 
 def test_check_profile_script_accepts_supported_profile(capsys):

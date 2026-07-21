@@ -488,6 +488,40 @@ def test_build_device_profile_supports_variable_length_string():
     assert profile.registers[0].count == 10
 
 
+def test_build_device_profile_rejects_string_without_count():
+    """Require an explicit count for string registers."""
+    with pytest.raises(
+        ProfileError,
+        match="profile registers.0: .*count.*required property",
+    ):
+        load_valid_profile(
+            register_overrides={"data_type": "string", "count": _DELETE}
+        )
+
+
+def test_build_device_profile_rejects_string_with_non_unit_scale():
+    """Reject string registers with a scale other than 1."""
+    with pytest.raises(
+        ProfileError,
+        match="profile registers.0.scale: ",
+    ):
+        load_valid_profile(
+            register_overrides={"data_type": "string", "count": 5, "scale": 0.1}
+        )
+
+
+def test_build_device_profile_rejects_bitmask_on_string():
+    """Reject bitmask on string registers where it has no meaning."""
+    with pytest.raises(ProfileError):
+        load_valid_profile(
+            register_overrides={
+                "data_type": "string",
+                "count": 5,
+                "bitmask": 0xFF,
+            }
+        )
+
+
 def test_build_device_profile_rejects_unknown_register_field():
     """Reject unknown register fields that may be misspelled."""
     with pytest.raises(

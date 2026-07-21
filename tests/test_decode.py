@@ -73,6 +73,60 @@ def test_decode_int16_signed_value():
     )
 
 
+def test_decode_string_register():
+    """Decode multi-register ASCII string values (two chars per word)."""
+    definition = RegisterDefinition(
+        key="serial",
+        name="Serial",
+        address=3,
+        function="holding",
+        data_type="string",
+        scale=1,
+        unit="",
+        access="read",
+        count=5,
+    )
+
+    measurement = decode_register(
+        definition,
+        values=(0x3132, 0x3334, 0x3536, 0x3738, 0x3930),
+    )
+
+    assert measurement == Measurement(
+        key="serial",
+        name="Serial",
+        value="1234567890",
+        unit="",
+    )
+
+
+def test_decode_string_strips_trailing_null_padding():
+    """Drop null bytes used to pad short serial numbers."""
+    definition = RegisterDefinition(
+        key="serial",
+        name="Serial",
+        address=3,
+        function="holding",
+        data_type="string",
+        scale=1,
+        unit="",
+        access="read",
+        count=5,
+    )
+
+    measurement = decode_register(
+        definition,
+        values=(0x4142, 0x4344, 0x0000, 0x0000, 0x0000),
+    )
+
+    assert measurement == Measurement(
+        key="serial",
+        name="Serial",
+        value="ABCD",
+        unit="",
+    )
+
+
 def test_decode_applies_bitmask():
     """Keep only the selected bits before scaling."""
     definition = RegisterDefinition(

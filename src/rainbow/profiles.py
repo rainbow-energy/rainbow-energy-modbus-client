@@ -104,6 +104,22 @@ _REGISTER_SCHEMA = {
         }
         for data_type, required_count in _DATA_TYPE_COUNTS.items()
         if required_count is not None
+    ]
+    + [
+        {
+            "if": {
+                "properties": {"data_type": {"const": "string"}},
+                "required": ["data_type"],
+            },
+            "then": {
+                "required": ["count"],
+                "properties": {
+                    "count": {"type": "integer", "minimum": 1, "maximum": 125},
+                    "scale": {"const": 1},
+                },
+                "not": {"required": ["bitmask"]},
+            },
+        }
     ],
 }
 _PROFILE_VALIDATOR = Draft202012Validator(

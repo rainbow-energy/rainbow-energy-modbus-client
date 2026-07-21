@@ -11,7 +11,7 @@ from rainbow.decode import decode_register
 from rainbow.profiles import DeviceProfile, ProfileError, load_profile
 
 SUPPORTED_FUNCTIONS = frozenset({"holding", "input"})
-SUPPORTED_DATA_TYPES = frozenset({"uint16", "int16", "uint32", "int32", "float32"})
+SUPPORTED_DATA_TYPES = frozenset({"uint16", "int16", "uint32", "int32", "float32", "string"})
 
 
 @dataclass(frozen=True, slots=True)
