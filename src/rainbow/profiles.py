@@ -103,7 +103,7 @@ _REGISTER_SCHEMA = {
                 **(
                     {"not": {"required": ["bitmask"]}}
                     if required_count == 2
-                    else {}
+                    else {"not": {"required": ["word_order"]}}
                 ),
             },
         }
@@ -122,7 +122,12 @@ _REGISTER_SCHEMA = {
                     "count": {"type": "integer", "minimum": 1, "maximum": 125},
                     "scale": {"const": 1},
                 },
-                "not": {"required": ["bitmask"]},
+                "not": {
+                    "anyOf": [
+                        {"required": ["bitmask"]},
+                        {"required": ["word_order"]},
+                    ]
+                },
             },
         }
     ],

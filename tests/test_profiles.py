@@ -472,6 +472,12 @@ def test_load_profile_rejects_unsupported_word_order():
         )
 
 
+def test_build_device_profile_rejects_word_order_on_uint16():
+    """Reject word_order on single-register types where it has no meaning."""
+    with pytest.raises(ProfileError):
+        load_valid_profile(register_overrides={"word_order": "big"})
+
+
 def test_build_device_profile_defaults_register_count():
     """Default an omitted register count to one."""
     profile = load_valid_profile(register_overrides={"count": _DELETE})
