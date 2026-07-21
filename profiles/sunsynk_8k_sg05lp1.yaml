@@ -1,7 +1,7 @@
 # SunSynk / Deye single-phase hybrid register map for SYNK-8K-SG05LP1.
 # SunSynk single-phase register definitions (addresses and scales).
 # Omitted for now: math sensors, non-contiguous multi-register values,
-# and overlapping AUX aliases.
+# overlapping AUX aliases, prog times, and SD status.
 # Protocol stays numeric until a version-string decode exists.
 # Binary switches use nonzero-after-mask = True (no explicit on value yet).
 manufacturer: Sunsynk
@@ -678,3 +678,248 @@ registers:
     access: write
     binary: true
 
+  - key: inverter_enabled
+    name: Inverter Enabled
+    address: 43
+    function: holding
+    data_type: uint16
+    scale: 1
+    unit: ""
+    access: write
+    binary: true
+
+  - key: aux_port_usage
+    name: AUX Port Usage
+    address: 235
+    function: holding
+    data_type: uint16
+    scale: 1
+    unit: ""
+    access: write
+    options:
+      0: Disable
+      1: Smartload
+      2: Generator
+
+  - key: load_limit
+    name: Load Limit
+    address: 244
+    function: holding
+    data_type: uint16
+    scale: 1
+    unit: ""
+    access: write
+    options:
+      0: Allow Export
+      1: Essentials
+      2: Zero Export
+
+  - key: bms_protocol
+    name: BMS Protocol
+    address: 325
+    function: holding
+    data_type: uint16
+    scale: 1
+    unit: ""
+    access: write
+    options:
+      0: PYLON CAN
+      1: SACRED SUN RS485
+      2: "02"
+      3: DYNESS CAN
+      4: "04"
+      5: "05"
+      6: GenixGreen RS485
+      7: "07"
+      8: "08"
+      9: "09"
+      10: "10"
+      11: "11"
+      12: PYLON RS485
+      13: VISION CAN
+      14: WATTSONIC RS485
+      15: UNIPOWER RS485
+      16: "16"
+      17: LD RS485
+      18: "18"
+      19: UNKNOWN RS485
+
+  - key: prog1_charge
+    name: Prog1 Charge
+    address: 274
+    function: holding
+    data_type: uint16
+    bitmask: 0x03
+    scale: 1
+    unit: ""
+    access: write
+    options:
+      0: No Grid or Gen
+      1: Allow Grid
+      2: Allow Gen
+      3: Allow Grid & Gen
+
+  - key: prog1_mode
+    name: Prog1 Mode
+    address: 274
+    function: holding
+    data_type: uint16
+    bitmask: 0x1C
+    scale: 1
+    unit: ""
+    access: write
+    options:
+      0: None
+      4: General
+      8: Backup
+      12: Charge
+
+  - key: prog2_charge
+    name: Prog2 Charge
+    address: 275
+    function: holding
+    data_type: uint16
+    bitmask: 0x03
+    scale: 1
+    unit: ""
+    access: write
+    options:
+      0: No Grid or Gen
+      1: Allow Grid
+      2: Allow Gen
+      3: Allow Grid & Gen
+
+  - key: prog2_mode
+    name: Prog2 Mode
+    address: 275
+    function: holding
+    data_type: uint16
+    bitmask: 0x1C
+    scale: 1
+    unit: ""
+    access: write
+    options:
+      0: None
+      4: General
+      8: Backup
+      12: Charge
+
+  - key: prog3_charge
+    name: Prog3 Charge
+    address: 276
+    function: holding
+    data_type: uint16
+    bitmask: 0x03
+    scale: 1
+    unit: ""
+    access: write
+    options:
+      0: No Grid or Gen
+      1: Allow Grid
+      2: Allow Gen
+      3: Allow Grid & Gen
+
+  - key: prog3_mode
+    name: Prog3 Mode
+    address: 276
+    function: holding
+    data_type: uint16
+    bitmask: 0x1C
+    scale: 1
+    unit: ""
+    access: write
+    options:
+      0: None
+      4: General
+      8: Backup
+      12: Charge
+
+  - key: prog4_charge
+    name: Prog4 Charge
+    address: 277
+    function: holding
+    data_type: uint16
+    bitmask: 0x03
+    scale: 1
+    unit: ""
+    access: write
+    options:
+      0: No Grid or Gen
+      1: Allow Grid
+      2: Allow Gen
+      3: Allow Grid & Gen
+
+  - key: prog4_mode
+    name: Prog4 Mode
+    address: 277
+    function: holding
+    data_type: uint16
+    bitmask: 0x1C
+    scale: 1
+    unit: ""
+    access: write
+    options:
+      0: None
+      4: General
+      8: Backup
+      12: Charge
+
+  - key: prog5_charge
+    name: Prog5 Charge
+    address: 278
+    function: holding
+    data_type: uint16
+    bitmask: 0x03
+    scale: 1
+    unit: ""
+    access: write
+    options:
+      0: No Grid or Gen
+      1: Allow Grid
+      2: Allow Gen
+      3: Allow Grid & Gen
+
+  - key: prog5_mode
+    name: Prog5 Mode
+    address: 278
+    function: holding
+    data_type: uint16
+    bitmask: 0x1C
+    scale: 1
+    unit: ""
+    access: write
+    options:
+      0: None
+      4: General
+      8: Backup
+      12: Charge
+
+  - key: prog6_charge
+    name: Prog6 Charge
+    address: 279
+    function: holding
+    data_type: uint16
+    bitmask: 0x03
+    scale: 1
+    unit: ""
+    access: write
+    options:
+      0: No Grid or Gen
+      1: Allow Grid
+      2: Allow Gen
+      3: Allow Grid & Gen
+
+  - key: prog6_mode
+    name: Prog6 Mode
+    address: 279
+    function: holding
+    data_type: uint16
+    bitmask: 0x1C
+    scale: 1
+    unit: ""
+    access: write
+    options:
+      0: None
+      4: General
+      8: Backup
+      12: Charge
