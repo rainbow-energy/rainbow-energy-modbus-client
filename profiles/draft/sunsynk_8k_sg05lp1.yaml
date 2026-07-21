@@ -6,8 +6,6 @@
 # addresses 182-186 that conflict with battery and PV1 metrics.
 #
 # Omitted (not expressible or unsupported in Rainbow yet):
-# - grid_current (math registers 160+161)
-# - essential_power, essential_1_power, essential_2_power, non_essential_power
 # - total_grid_import (non-contiguous registers 78+80)
 # - fault (FaultSensor 103-106)
 # - date_time (datetime registers 22-24)

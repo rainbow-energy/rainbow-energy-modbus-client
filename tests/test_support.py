@@ -146,6 +146,78 @@ def test_check_profile_support_accepts_options_without_zero():
     assert check_profile_support(profile) == ()
 
 
+def test_check_profile_support_accepts_math_register():
+    """Accept math registers whose sources can be decoded."""
+    profile = build_device_profile(
+        {
+            "manufacturer": "Example Energy",
+            "model": "Example 8K",
+            "registers": [
+                {
+                    "key": "inverter_power",
+                    "name": "Inverter Power",
+                    "address": 175,
+                    "function": "holding",
+                    "data_type": "int16",
+                    "scale": 1,
+                    "unit": "W",
+                    "access": "read",
+                },
+                {
+                    "key": "essential_power",
+                    "name": "Essential Power",
+                    "data_type": "math",
+                    "unit": "W",
+                    "access": "read",
+                    "sources": [{"key": "inverter_power", "factor": 1}],
+                },
+            ],
+        }
+    )
+
+    assert check_profile_support(profile) == ()
+
+
+def test_check_profile_support_reports_math_string_source():
+    """Report math registers that source a non-numeric leaf value."""
+    profile = build_device_profile(
+        {
+            "manufacturer": "Example Energy",
+            "model": "Example 8K",
+            "registers": [
+                {
+                    "key": "serial",
+                    "name": "Serial",
+                    "address": 3,
+                    "function": "holding",
+                    "data_type": "string",
+                    "count": 1,
+                    "scale": 1,
+                    "unit": "",
+                    "access": "read",
+                },
+                {
+                    "key": "broken",
+                    "name": "Broken",
+                    "data_type": "math",
+                    "unit": "",
+                    "access": "read",
+                    "sources": [{"key": "serial", "factor": 1}],
+                },
+            ],
+        }
+    )
+
+    issues = check_profile_support(profile)
+
+    assert issues == (
+        UnsupportedFeature(
+            key="broken",
+            reason="decode failed: non-numeric source value serial for broken",
+        ),
+    )
+
+
 def test_check_profile_script_reports_unsupported_features(tmp_path, capsys):
     """Print unsupported features and exit non-zero for a decodable profile."""
     profile_path = tmp_path / "bad.yaml"

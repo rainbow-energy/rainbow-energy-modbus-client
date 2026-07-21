@@ -452,6 +452,124 @@ def test_build_device_profile_supports_binary():
     assert profile.registers[0].binary is True
 
 
+def test_build_device_profile_supports_math_sources():
+    """Allow a math register that combines other register keys."""
+    from rainbow.profiles import MathSource
+
+    profile = build_device_profile(
+        {
+            "manufacturer": "Example Energy",
+            "model": "Example 8K",
+            "registers": [
+                {
+                    "key": "inverter_power",
+                    "name": "Inverter Power",
+                    "address": 175,
+                    "function": "holding",
+                    "data_type": "int16",
+                    "scale": 1,
+                    "unit": "W",
+                    "access": "read",
+                },
+                {
+                    "key": "grid_power",
+                    "name": "Grid Power",
+                    "address": 169,
+                    "function": "holding",
+                    "data_type": "int16",
+                    "scale": 1,
+                    "unit": "W",
+                    "access": "read",
+                },
+                {
+                    "key": "essential_power",
+                    "name": "Essential Power",
+                    "data_type": "math",
+                    "unit": "W",
+                    "access": "read",
+                    "sources": [
+                        {"key": "inverter_power", "factor": 1},
+                        {"key": "grid_power", "factor": 1},
+                    ],
+                },
+            ],
+        }
+    )
+
+    math_register = profile.registers[2]
+    assert math_register.data_type == "math"
+    assert math_register.sources == (
+        MathSource(key="inverter_power", factor=1),
+        MathSource(key="grid_power", factor=1),
+    )
+
+
+def test_build_device_profile_rejects_unknown_math_source():
+    """Reject math registers that reference a missing source key."""
+    with pytest.raises(
+        ProfileError,
+        match="math register essential_power references unknown source key: missing",
+    ):
+        build_device_profile(
+            {
+                "manufacturer": "Example Energy",
+                "model": "Example 8K",
+                "registers": [
+                    {
+                        "key": "essential_power",
+                        "name": "Essential Power",
+                        "data_type": "math",
+                        "unit": "W",
+                        "access": "read",
+                        "sources": [{"key": "missing", "factor": 1}],
+                    }
+                ],
+            }
+        )
+
+
+def test_build_device_profile_rejects_math_sourcing_math():
+    """Reject nested math sources in the first version."""
+    with pytest.raises(
+        ProfileError,
+        match="math register total cannot source math register: essential_power",
+    ):
+        build_device_profile(
+            {
+                "manufacturer": "Example Energy",
+                "model": "Example 8K",
+                "registers": [
+                    {
+                        "key": "inverter_power",
+                        "name": "Inverter Power",
+                        "address": 175,
+                        "function": "holding",
+                        "data_type": "int16",
+                        "scale": 1,
+                        "unit": "W",
+                        "access": "read",
+                    },
+                    {
+                        "key": "essential_power",
+                        "name": "Essential Power",
+                        "data_type": "math",
+                        "unit": "W",
+                        "access": "read",
+                        "sources": [{"key": "inverter_power", "factor": 1}],
+                    },
+                    {
+                        "key": "total",
+                        "name": "Total",
+                        "data_type": "math",
+                        "unit": "W",
+                        "access": "read",
+                        "sources": [{"key": "essential_power", "factor": 1}],
+                    },
+                ],
+            }
+        )
+
+
 def test_load_profile_supports_multi_register_value():
     """Load a value spanning multiple Modbus registers."""
     profile = load_valid_profile(

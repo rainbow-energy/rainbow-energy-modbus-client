@@ -17,18 +17,28 @@ _DATA_TYPE_COUNTS: dict[str, int | None] = {
     "int32": 2,
     "float32": 2,
     "string": None,
+    "math": None,
 }
 _NON_EMPTY_STRING_SCHEMA = {"type": "string", "pattern": r"\S"}
+_SOURCE_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["key", "factor"],
+    "properties": {
+        "key": _NON_EMPTY_STRING_SCHEMA,
+        "factor": {
+            "type": "number",
+            "not": {"const": 0},
+        },
+    },
+}
 _REGISTER_SCHEMA = {
     "type": "object",
     "additionalProperties": False,
     "required": [
         "key",
         "name",
-        "address",
-        "function",
         "data_type",
-        "scale",
         "unit",
         "access",
     ],
@@ -86,6 +96,13 @@ _REGISTER_SCHEMA = {
             "type": "boolean",
             "const": True,
         },
+        "sources": {
+            "type": "array",
+            "minItems": 1,
+            "items": _SOURCE_SCHEMA,
+        },
+        "no_negative": {"type": "boolean"},
+        "absolute": {"type": "boolean"},
     },
     "allOf": [
         {
@@ -125,6 +142,22 @@ _REGISTER_SCHEMA = {
     + [
         {
             "if": {
+                "properties": {"data_type": {"not": {"const": "math"}}},
+                "required": ["data_type"],
+            },
+            "then": {
+                "required": ["address", "function", "scale"],
+                "not": {
+                    "anyOf": [
+                        {"required": ["sources"]},
+                        {"required": ["no_negative"]},
+                        {"required": ["absolute"]},
+                    ]
+                },
+            },
+        },
+        {
+            "if": {
                 "properties": {"data_type": {"const": "string"}},
                 "required": ["data_type"],
             },
@@ -138,6 +171,28 @@ _REGISTER_SCHEMA = {
                     "anyOf": [
                         {"required": ["bitmask"]},
                         {"required": ["word_order"]},
+                        {"required": ["offset"]},
+                        {"required": ["options"]},
+                        {"required": ["binary"]},
+                    ]
+                },
+            },
+        },
+        {
+            "if": {
+                "properties": {"data_type": {"const": "math"}},
+                "required": ["data_type"],
+            },
+            "then": {
+                "required": ["sources"],
+                "not": {
+                    "anyOf": [
+                        {"required": ["address"]},
+                        {"required": ["function"]},
+                        {"required": ["scale"]},
+                        {"required": ["count"]},
+                        {"required": ["word_order"]},
+                        {"required": ["bitmask"]},
                         {"required": ["offset"]},
                         {"required": ["options"]},
                         {"required": ["binary"]},
@@ -195,23 +250,34 @@ class ProfileError(ValueError):
 
 
 @dataclass(frozen=True, slots=True)
+class MathSource:
+    """One weighted input to a math register."""
+
+    key: str
+    factor: float
+
+
+@dataclass(frozen=True, slots=True)
 class RegisterDefinition:
     """Describe how one named value is stored in a Modbus register."""
 
     key: str
     name: str
-    address: int
-    function: str
     data_type: str
-    scale: float
     unit: str
     access: str
+    address: int | None = None
+    function: str | None = None
+    scale: float | None = None
     count: int = 1
     word_order: str | None = None
     bitmask: int | None = None
     offset: float | None = None
     options: dict[int, str] | None = None
     binary: bool = False
+    sources: tuple[MathSource, ...] | None = None
+    no_negative: bool = False
+    absolute: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -232,6 +298,8 @@ def _schema_error(scope: str, error: ValidationError) -> ProfileError:
 
 def _validate_register_range(index: int, register_data: Mapping) -> None:
     """Validate a register range that JSON Schema cannot express."""
+    if register_data["data_type"] == "math":
+        return
     address = cast(int, register_data["address"])
     count = cast(int, register_data.get("count", 1))
     if address + count - 1 > 65535:
@@ -246,7 +314,32 @@ def _load_register(index: int, register_data: Mapping) -> RegisterDefinition:
         data["options"] = {
             int(key): value for key, value in data["options"].items()
         }
+    if "sources" in data:
+        data["sources"] = tuple(
+            MathSource(key=source["key"], factor=source["factor"])
+            for source in data["sources"]
+        )
     return RegisterDefinition(**data)
+
+
+def _validate_math_sources(registers: tuple[RegisterDefinition, ...]) -> None:
+    """Ensure math sources reference existing non-math registers."""
+    by_key = {register.key: register for register in registers}
+    for register in registers:
+        if register.sources is None:
+            continue
+        for source in register.sources:
+            target = by_key.get(source.key)
+            if target is None:
+                raise ProfileError(
+                    f"math register {register.key} references unknown "
+                    f"source key: {source.key}"
+                )
+            if target.data_type == "math":
+                raise ProfileError(
+                    f"math register {register.key} cannot source math "
+                    f"register: {source.key}"
+                )
 
 
 def _load_registers(registers_data: list[Mapping]) -> tuple[RegisterDefinition, ...]:
@@ -262,6 +355,10 @@ def _load_registers(registers_data: list[Mapping]) -> tuple[RegisterDefinition, 
         if normalized_key in seen_keys:
             raise ProfileError(f"duplicate register key: {register.key}")
         seen_keys.add(normalized_key)
+        if register.data_type == "math":
+            continue
+        assert register.address is not None
+        assert register.function is not None
         for offset in range(register.count):
             address = register.address + offset
             space = (register.function, address)
@@ -277,6 +374,7 @@ def _load_registers(registers_data: list[Mapping]) -> tuple[RegisterDefinition, 
                         f"{existing_key} and {register.key}"
                     )
             claims.append((register.key, register.bitmask))
+    _validate_math_sources(registers)
     return registers
 
 

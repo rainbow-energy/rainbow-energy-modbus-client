@@ -1,6 +1,6 @@
 # SunSynk / Deye single-phase hybrid register map for SYNK-8K-SG05LP1.
 # SunSynk single-phase register definitions (addresses and scales).
-# Omitted for now: math sensors, non-contiguous multi-register values,
+# Omitted for now: non-contiguous multi-register values,
 # overlapping AUX aliases, prog times, SD status, and control_mode.
 # Protocol stays numeric until a version-string decode exists.
 # Binary switches use nonzero-after-mask = True (no explicit on value yet).
@@ -1265,3 +1265,84 @@ registers:
     scale: 1
     unit: "A"
     access: write
+
+  - key: essential_power
+    name: Essential Power
+    data_type: math
+    unit: W
+    access: read
+    sources:
+      - key: inverter_power
+        factor: 1
+      - key: grid_power
+        factor: 1
+      - key: aux_power
+        factor: -1
+
+  - key: essential_1_power
+    name: Essential 1 Power
+    data_type: math
+    unit: W
+    access: read
+    sources:
+      - key: inverter_power
+        factor: 1
+      - key: grid_ld_power
+        factor: 1
+      - key: aux_power
+        factor: -1
+
+  - key: essential_2_power
+    name: Essential 2 Power
+    data_type: math
+    unit: W
+    access: read
+    absolute: true
+    sources:
+      - key: inverter_power
+        factor: 1
+      - key: grid_power
+        factor: 1
+      - key: aux_power
+        factor: -1
+
+  - key: non_essential_power
+    name: Non Essential Power
+    data_type: math
+    unit: W
+    access: read
+    no_negative: true
+    sources:
+      - key: grid_ct_power
+        factor: 1
+      - key: grid_ld_power
+        factor: -1
+
+  - key: grid_l1_current
+    name: Grid L1 Current
+    address: 160
+    function: holding
+    data_type: int16
+    scale: 0.01
+    unit: A
+    access: read
+
+  - key: grid_l2_current
+    name: Grid L2 Current
+    address: 161
+    function: holding
+    data_type: int16
+    scale: 0.01
+    unit: A
+    access: read
+
+  - key: grid_current
+    name: Grid Current
+    data_type: math
+    unit: A
+    access: read
+    sources:
+      - key: grid_l1_current
+        factor: 1
+      - key: grid_l2_current
+        factor: 1

@@ -232,6 +232,171 @@ def test_decode_rejects_binary_on_non_integer_value():
         decode_register(definition, values=(16256, 0))
 
 
+def test_decode_math_applies_weighted_sum():
+    """Combine source engineering values with per-source factors."""
+    from rainbow.decode import decode_math
+    from rainbow.profiles import MathSource
+
+    definition = RegisterDefinition(
+        key="essential_power",
+        name="Essential Power",
+        data_type="math",
+        unit="W",
+        access="read",
+        sources=(
+            MathSource(key="inverter_power", factor=1),
+            MathSource(key="grid_power", factor=1),
+            MathSource(key="aux_power", factor=-1),
+        ),
+    )
+
+    measurement = decode_math(
+        definition,
+        {"inverter_power": 1000, "grid_power": 200, "aux_power": 50},
+    )
+
+    assert measurement == Measurement(
+        key="essential_power",
+        name="Essential Power",
+        value=1150,
+        unit="W",
+    )
+
+
+def test_decode_math_applies_no_negative():
+    """Clamp negative math results to zero when requested."""
+    from rainbow.decode import decode_math
+    from rainbow.profiles import MathSource
+
+    definition = RegisterDefinition(
+        key="non_essential_power",
+        name="Non Essential Power",
+        data_type="math",
+        unit="W",
+        access="read",
+        sources=(
+            MathSource(key="grid_ct_power", factor=1),
+            MathSource(key="grid_ld_power", factor=-1),
+        ),
+        no_negative=True,
+    )
+
+    measurement = decode_math(
+        definition,
+        {"grid_ct_power": 100, "grid_ld_power": 250},
+    )
+
+    assert measurement.value == 0
+
+
+def test_decode_math_applies_absolute():
+    """Take the absolute value of a math result when requested."""
+    from rainbow.decode import decode_math
+    from rainbow.profiles import MathSource
+
+    definition = RegisterDefinition(
+        key="essential_2_power",
+        name="Essential 2 Power",
+        data_type="math",
+        unit="W",
+        access="read",
+        sources=(
+            MathSource(key="inverter_power", factor=1),
+            MathSource(key="grid_power", factor=1),
+            MathSource(key="aux_power", factor=-1),
+        ),
+        absolute=True,
+    )
+
+    measurement = decode_math(
+        definition,
+        {"inverter_power": 100, "grid_power": 50, "aux_power": 200},
+    )
+
+    assert measurement.value == 50
+
+
+def test_decode_math_rejects_missing_source_value():
+    """Reject math decode when a required source value is absent."""
+    from rainbow.decode import decode_math
+    from rainbow.profiles import MathSource
+
+    definition = RegisterDefinition(
+        key="essential_power",
+        name="Essential Power",
+        data_type="math",
+        unit="W",
+        access="read",
+        sources=(MathSource(key="inverter_power", factor=1),),
+    )
+
+    with pytest.raises(
+        DecodeError,
+        match="missing source value inverter_power for essential_power",
+    ):
+        decode_math(definition, {})
+
+
+def test_decode_math_rejects_non_numeric_source_value():
+    """Reject math decode when a source value is not numeric."""
+    from rainbow.decode import decode_math
+    from rainbow.profiles import MathSource
+
+    definition = RegisterDefinition(
+        key="essential_power",
+        name="Essential Power",
+        data_type="math",
+        unit="W",
+        access="read",
+        sources=(MathSource(key="serial", factor=1),),
+    )
+
+    with pytest.raises(
+        DecodeError,
+        match="non-numeric source value serial for essential_power",
+    ):
+        decode_math(definition, {"serial": "ABC"})
+
+
+def test_decode_math_rejects_missing_sources():
+    """Reject math decode when the definition has no sources."""
+    from rainbow.decode import decode_math
+
+    definition = RegisterDefinition(
+        key="essential_power",
+        name="Essential Power",
+        data_type="math",
+        unit="W",
+        access="read",
+    )
+
+    with pytest.raises(
+        DecodeError,
+        match="math register essential_power has no sources",
+    ):
+        decode_math(definition, {})
+
+
+def test_decode_register_rejects_math_definition():
+    """Reject decoding a math register from raw Modbus words."""
+    from rainbow.profiles import MathSource
+
+    definition = RegisterDefinition(
+        key="essential_power",
+        name="Essential Power",
+        data_type="math",
+        unit="W",
+        access="read",
+        sources=(MathSource(key="inverter_power", factor=1),),
+    )
+
+    with pytest.raises(
+        DecodeError,
+        match="math register essential_power cannot be decoded from raw words",
+    ):
+        decode_register(definition, values=(1,))
+
+
 def test_decode_int16_signed_value():
     """Decode a signed 16-bit register as two's complement."""
     definition = RegisterDefinition(

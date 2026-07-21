@@ -7,11 +7,13 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-from rainbow.decode import decode_register
+from rainbow.decode import DecodeError, decode_math, decode_register
 from rainbow.profiles import DeviceProfile, ProfileError, RegisterDefinition, load_profile
 
 SUPPORTED_FUNCTIONS = frozenset({"holding", "input"})
-SUPPORTED_DATA_TYPES = frozenset({"uint16", "int16", "uint32", "int32", "float32", "string"})
+SUPPORTED_DATA_TYPES = frozenset(
+    {"uint16", "int16", "uint32", "int32", "float32", "string", "math"}
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,10 +32,38 @@ def _probe_values(register: RegisterDefinition) -> tuple[int, ...]:
     return (0,) * register.count
 
 
+def _probe_math(profile: DeviceProfile, register: RegisterDefinition) -> None:
+    """Decode a math register using synthetic leaf source values."""
+    assert register.sources is not None
+    by_key = {item.key: item for item in profile.registers}
+    source_values: dict[str, float | int] = {}
+    for source in register.sources:
+        leaf = by_key[source.key]
+        measurement = decode_register(leaf, _probe_values(leaf))
+        value = measurement.value
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            raise DecodeError(
+                f"non-numeric source value {source.key} for {register.key}"
+            )
+        source_values[source.key] = value
+    decode_math(register, source_values)
+
+
 def check_profile_support(profile: DeviceProfile) -> tuple[UnsupportedFeature, ...]:
     """Return unsupported features found in a loaded device profile."""
     issues: list[UnsupportedFeature] = []
     for register in profile.registers:
+        if register.data_type == "math":
+            try:
+                _probe_math(profile, register)
+            except Exception as error:  # noqa: BLE001 - report any decode failure
+                issues.append(
+                    UnsupportedFeature(
+                        key=register.key,
+                        reason=f"decode failed: {error}",
+                    )
+                )
+            continue
         if register.function not in SUPPORTED_FUNCTIONS:
             issues.append(
                 UnsupportedFeature(

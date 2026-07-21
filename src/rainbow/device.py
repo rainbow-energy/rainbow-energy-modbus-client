@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Protocol
 
-from rainbow.decode import Measurement, decode_register
+from rainbow.decode import Measurement, decode_math, decode_register
 from rainbow.profiles import DeviceProfile, RegisterDefinition
 from rainbow.reader import RegisterData
 
@@ -56,6 +56,21 @@ def _read_register_range(
     return reader.read_holding_registers(start_address, count)
 
 
+def _leaf_definitions(
+    profile: DeviceProfile,
+    definitions: Sequence[RegisterDefinition],
+) -> tuple[RegisterDefinition, ...]:
+    """Expand math sources into unique leaf register definitions."""
+    leaves: dict[str, RegisterDefinition] = {}
+    for definition in definitions:
+        if definition.sources is None:
+            leaves[definition.key] = definition
+            continue
+        for source in definition.sources:
+            leaves[source.key] = _lookup_register(profile, source.key)
+    return tuple(leaves.values())
+
+
 def _plan_batches(definitions: Sequence[RegisterDefinition]) -> tuple[_RegisterBatch, ...]:
     """Merge nearby same-function registers into contiguous read batches."""
     ordered = sorted(
@@ -64,6 +79,8 @@ def _plan_batches(definitions: Sequence[RegisterDefinition]) -> tuple[_RegisterB
     )
     batches: list[_RegisterBatch] = []
     for definition in ordered:
+        assert definition.address is not None
+        assert definition.function is not None
         end_address = definition.address + definition.count - 1
         if batches:
             current = batches[-1]
@@ -90,6 +107,27 @@ def _plan_batches(definitions: Sequence[RegisterDefinition]) -> tuple[_RegisterB
     return tuple(batches)
 
 
+def _decode_leaf(
+    definition: RegisterDefinition,
+    batch_values: dict[tuple[str, int], tuple[int, ...]],
+) -> Measurement:
+    """Decode one leaf register from batched Modbus values."""
+    assert definition.address is not None
+    assert definition.function is not None
+    end_address = definition.address + definition.count - 1
+    for (function, start_address), values in batch_values.items():
+        batch_end = start_address + len(values) - 1
+        if (
+            function == definition.function
+            and start_address <= definition.address
+            and end_address <= batch_end
+        ):
+            offset = definition.address - start_address
+            slice_values = values[offset : offset + definition.count]
+            return decode_register(definition, slice_values)
+    raise LookupError(f"no batch covered register {definition.key}")
+
+
 def read_measurement(
     reader: RegisterReader,
     profile: DeviceProfile,
@@ -106,6 +144,7 @@ def read_measurements(
 ) -> tuple[Measurement, ...]:
     """Read several named registers, batching adjacent Modbus ranges."""
     definitions = tuple(_lookup_register(profile, key) for key in keys)
+    leaves = _leaf_definitions(profile, definitions)
     batch_values = {
         (batch.function, batch.start_address): _read_register_range(
             reader,
@@ -113,21 +152,22 @@ def read_measurements(
             batch.start_address,
             batch.count,
         ).values
-        for batch in _plan_batches(definitions)
+        for batch in _plan_batches(leaves)
+    }
+
+    decoded: dict[str, Measurement] = {
+        leaf.key: _decode_leaf(leaf, batch_values) for leaf in leaves
+    }
+    source_values = {
+        key: measurement.value
+        for key, measurement in decoded.items()
+        if isinstance(measurement.value, (int, float)) and not isinstance(measurement.value, bool)
     }
 
     measurements: list[Measurement] = []
     for definition in definitions:
-        end_address = definition.address + definition.count - 1
-        for (function, start_address), values in batch_values.items():
-            batch_end = start_address + len(values) - 1
-            if (
-                function == definition.function
-                and start_address <= definition.address
-                and end_address <= batch_end
-            ):
-                offset = definition.address - start_address
-                slice_values = values[offset : offset + definition.count]
-                measurements.append(decode_register(definition, slice_values))
-                break
+        if definition.sources is None:
+            measurements.append(decoded[definition.key])
+        else:
+            measurements.append(decode_math(definition, source_values))
     return tuple(measurements)

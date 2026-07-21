@@ -2,7 +2,7 @@
 
 import math
 import struct
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 from rainbow.profiles import RegisterDefinition
@@ -63,11 +63,48 @@ def _raw_value(definition: RegisterDefinition, values: Sequence[int]) -> float |
     raise DecodeError(f"unsupported data_type: {definition.data_type}")
 
 
+def decode_math(
+    definition: RegisterDefinition,
+    source_values: Mapping[str, float | int],
+) -> Measurement:
+    """Combine decoded source values into one math measurement."""
+    if definition.sources is None:
+        raise DecodeError(f"math register {definition.key} has no sources")
+    total = 0.0
+    for source in definition.sources:
+        try:
+            raw = source_values[source.key]
+        except KeyError as error:
+            raise DecodeError(
+                f"missing source value {source.key} for {definition.key}"
+            ) from error
+        if isinstance(raw, bool) or not isinstance(raw, (int, float)):
+            raise DecodeError(
+                f"non-numeric source value {source.key} for {definition.key}"
+            )
+        total += raw * source.factor
+    if definition.absolute and total < 0:
+        total = -total
+    if definition.no_negative and total < 0:
+        total = 0
+    value: float | int = int(total) if total == int(total) else total
+    return Measurement(
+        key=definition.key,
+        name=definition.name,
+        value=value,
+        unit=definition.unit,
+    )
+
+
 def decode_register(
     definition: RegisterDefinition,
     values: Sequence[int],
 ) -> Measurement:
     """Decode raw register words for one profile definition."""
+    if definition.data_type == "math":
+        raise DecodeError(
+            f"math register {definition.key} cannot be decoded from raw words"
+        )
     if len(values) != definition.count:
         raise DecodeError(
             f"Expected {definition.count} register values for {definition.key}, "
@@ -96,6 +133,7 @@ def decode_register(
     elif isinstance(raw, str):
         value = raw
     else:
+        assert definition.scale is not None
         value = raw * definition.scale
         if definition.offset is not None:
             value -= definition.offset
