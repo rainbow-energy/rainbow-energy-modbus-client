@@ -522,6 +522,19 @@ def test_build_device_profile_rejects_bitmask_on_string():
         )
 
 
+def test_build_device_profile_rejects_bitmask_on_uint32():
+    """Reject bitmask on multi-register types where per-word masking is wrong."""
+    with pytest.raises(ProfileError):
+        load_valid_profile(
+            register_overrides={
+                "data_type": "uint32",
+                "count": 2,
+                "word_order": "big",
+                "bitmask": 0xFF,
+            }
+        )
+
+
 def test_build_device_profile_rejects_unknown_register_field():
     """Reject unknown register fields that may be misspelled."""
     with pytest.raises(

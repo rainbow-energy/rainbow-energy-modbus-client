@@ -100,6 +100,11 @@ _REGISTER_SCHEMA = {
                     if required_count == 2
                     else {}
                 ),
+                **(
+                    {"not": {"required": ["bitmask"]}}
+                    if required_count == 2
+                    else {}
+                ),
             },
         }
         for data_type, required_count in _DATA_TYPE_COUNTS.items()
