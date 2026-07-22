@@ -325,6 +325,19 @@ registers:
     unit: A
     access: read
 
+  - key: pv_power
+    name: PV Power
+    data_type: math
+    unit: W
+    access: read
+    sources:
+      - key: pv1_power
+        factor: 1
+      - key: pv2_power
+        factor: 1
+      - key: pv3_power
+        factor: 1
+
   - key: day_active_energy
     name: Day Active Energy
     address: 60
