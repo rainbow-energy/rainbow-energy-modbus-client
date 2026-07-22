@@ -6,7 +6,8 @@ structured data. Connect with a USB-RS485 adapter (serial RTU) or via Modbus TCP
 
 ## Usage
 
-See [USAGE.md](USAGE.md) for `Client` polling over serial or TCP.
+See [USAGE.md](USAGE.md) for one-shot and repeated `Client` polling, plus
+error logging.
 
 ## Device profiles
 
