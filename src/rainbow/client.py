@@ -1,6 +1,7 @@
 """Poll named measurements from an inverter using a device profile."""
 
-from collections.abc import Sequence
+from collections.abc import Callable, Iterator, Sequence
+from time import sleep as default_sleep
 
 from rainbow.decode import DecodeError, Measurement
 from rainbow.device import RegisterReader, read_measurements
@@ -35,3 +36,16 @@ class Client:
             return read_measurements(self._reader, self._profile, self._keys)
         except (RegisterReadError, DecodeError, KeyError, LookupError) as error:
             raise ClientError("failed to poll measurements") from error
+
+    def run(
+        self,
+        interval: float,
+        *,
+        iterations: int,
+        sleep: Callable[[float], None] = default_sleep,
+    ) -> Iterator[tuple[Measurement, ...]]:
+        """Yield successive polls, sleeping between them by interval seconds."""
+        for index in range(iterations):
+            yield self.poll()
+            if index + 1 < iterations:
+                sleep(interval)

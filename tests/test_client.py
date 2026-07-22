@@ -106,3 +106,17 @@ def test_client_poll_wraps_decode_error():
         client.poll()
 
     assert isinstance(raised.value.__cause__, DecodeError)
+
+
+def test_client_run_polls_repeatedly_with_interval():
+    """Yield successive polls and sleep between them for the given interval."""
+    profile = make_profile(registers=(make_register(key="battery_soc", address=184),))
+    reader = FakeReader(values=(85,))
+    client = Client(reader, profile, keys=("battery_soc",))
+    sleeps: list[float] = []
+
+    readings = list(client.run(interval=2.0, iterations=3, sleep=sleeps.append))
+
+    assert len(readings) == 3
+    assert all(reading[0].value == 85 for reading in readings)
+    assert sleeps == [2.0, 2.0]

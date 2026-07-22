@@ -29,8 +29,8 @@
 - Keep docs in sync with behaviour changes in the same change set when practical.
 - Update [PROFILES.md](PROFILES.md) when profile schema, data types, decode
   modifiers, overlap rules, or authoring guidance change.
-- Update [README.md](README.md) when the high-level product description or
-  client workflow changes.
+- Update [README.md](README.md) when the high-level product description changes.
+- Update [USAGE.md](USAGE.md) when the client API or example workflow changes.
 - Update [DEVELOPMENT.md](DEVELOPMENT.md) when setup, commands, Docker, or
   profile-check workflow changes.
 - Do not leave docs describing removed or outdated behaviour.
