@@ -30,14 +30,41 @@ with ModbusReader.tcp(host="modbus-gateway.example", port=502) as reader:
     measurements = client.poll()
 ```
 
-Continuous looping remains the caller's responsibility for now (call `poll`
-on your own interval).
+## Repeated polling
+
+`Client.run` yields successful polls and sleeps between cycles. Failed polls
+raise `ClientError` from `poll()`, but `run` catches them, skips that cycle,
+optionally reports via `on_error`, and continues:
+
+```python
+from rainbow.client import Client, ClientError
+
+
+def log_error(error: ClientError) -> None:
+    print("poll failed:", error, "cause:", error.__cause__)
+
+
+with ModbusReader.tcp(host="modbus-gateway.example", port=502) as reader:
+    client = Client(reader, profile, keys=keys)
+    for measurements in client.run(
+        interval=5.0,
+        iterations=12,
+        on_error=log_error,
+    ):
+        for measurement in measurements:
+            print(measurement.key, measurement.value, measurement.unit)
+```
+
+`sleep` defaults to `time.sleep`. Pass a custom callable in tests to avoid
+real delays.
 
 ## Errors
 
 - Constructing a `Client` with no keys raises `ValueError`.
 - `poll()` raises `ClientError` on failure and preserves the underlying cause
   (`RegisterReadError`, `DecodeError`, `KeyError`, or `LookupError`).
+- `run()` does not stop on `ClientError`; use `on_error` to observe failures.
+  Direct `poll()` calls still raise to the caller.
 
 ## Profiles
 

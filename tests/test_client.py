@@ -120,3 +120,39 @@ def test_client_run_polls_repeatedly_with_interval():
     assert len(readings) == 3
     assert all(reading[0].value == 85 for reading in readings)
     assert sleeps == [2.0, 2.0]
+
+
+def test_client_run_continues_after_poll_error():
+    """Skip failed polls, report them, and keep iterating on the interval."""
+    profile = make_profile(registers=(make_register(key="battery_soc", address=184),))
+
+    class FlakyReader(FakeReader):
+        def __init__(self) -> None:
+            super().__init__(values=(85,))
+            self.calls = 0
+
+        def read_holding_registers(self, start_address: int, count: int) -> RegisterData:
+            self.calls += 1
+            if self.calls == 2:
+                raise RegisterReadError("transient Modbus failure")
+            return super().read_holding_registers(start_address, count)
+
+    client = Client(FlakyReader(), profile, keys=("battery_soc",))
+    errors: list[ClientError] = []
+    sleeps: list[float] = []
+
+    readings = list(
+        client.run(
+            interval=1.0,
+            iterations=3,
+            sleep=sleeps.append,
+            on_error=errors.append,
+        )
+    )
+
+    assert len(readings) == 2
+    assert all(reading[0].value == 85 for reading in readings)
+    assert len(errors) == 1
+    assert isinstance(errors[0], ClientError)
+    assert isinstance(errors[0].__cause__, RegisterReadError)
+    assert sleeps == [1.0, 1.0]
