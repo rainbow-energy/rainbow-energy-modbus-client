@@ -84,6 +84,25 @@ rainbow-energy-client check-profile path/to/profile.yaml
 `check-profile` exit codes: `0` supported, `1` unsupported features,
 `2` load/schema error.
 
+Poll named measurements once over Modbus TCP or serial:
+
+```bash
+rainbow-energy-client poll \
+  --profile sunsynk_8k_sg05lp1 \
+  --key battery_soc --key pv_power \
+  --tcp modbus-gateway.example
+
+rainbow-energy-client poll \
+  --profile sunsynk_8k_sg05lp1 \
+  --key battery_soc \
+  --serial /dev/ttyUSB0 \
+  --device-id 1
+```
+
+Use `--tcp-port` when the Modbus TCP port is not `502`. Output is one
+`key<TAB>value<TAB>unit` line per measurement. Exit codes: `0` success,
+`1` poll failure, `2` profile load error.
+
 ## Profiles
 
 See [PROFILES.md](PROFILES.md) for authoring YAML profiles and decode options.
