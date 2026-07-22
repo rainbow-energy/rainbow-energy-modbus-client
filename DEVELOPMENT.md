@@ -21,6 +21,21 @@ make check
 
 Run `make help` to list all available commands.
 
+## Packaging
+
+Build an sdist and wheel into `dist/`:
+
+```bash
+uv build
+```
+
+Inspect the wheel contents if you need to confirm packaged profiles or
+`py.typed` are included:
+
+```bash
+unzip -l dist/rainbow_energy_client-*.whl
+```
+
 ## Docker
 
 Build the development image:

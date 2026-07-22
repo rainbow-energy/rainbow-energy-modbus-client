@@ -4,6 +4,12 @@ A minimal Python library that reads an inverter over Modbus and returns
 structured data. Connect with a USB-RS485 adapter (serial RTU) or via Modbus TCP
 (for example through an `mbusd` gateway).
 
+## Install
+
+```bash
+uv add git+https://github.com/rainbow-solar/rainbow-energy-client.git
+```
+
 ## Usage
 
 See [USAGE.md](USAGE.md) for one-shot and repeated `Client` polling, plus

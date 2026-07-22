@@ -8,12 +8,33 @@ version = "0.1.0"
 description = "Profile-driven client for reading energy device measurements over Modbus (serial or TCP)"
 readme = "README.md"
 requires-python = ">=3.12"
-license = { text = "Apache-2.0" }
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [
+  { name = "Rainbow Solar" },
+]
+keywords = ["modbus", "inverter", "energy", "solar", "rs485"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: System :: Hardware",
+  "Typing :: Typed",
+]
 dependencies = [
   "jsonschema>=4.26.0",
   "pymodbus[serial]",
   "pyyaml>=6.0.3",
 ]
+
+[project.urls]
+Homepage = "https://github.com/rainbow-solar/rainbow-energy-client"
+Repository = "https://github.com/rainbow-solar/rainbow-energy-client"
+Issues = "https://github.com/rainbow-solar/rainbow-energy-client/issues"
+Documentation = "https://github.com/rainbow-solar/rainbow-energy-client#readme"
 
 [dependency-groups]
 dev = [
@@ -25,9 +46,6 @@ dev = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/rainbow_energy_client"]
-
-[tool.hatch.build.targets.wheel.force-include]
-"src/rainbow_energy_client/data" = "rainbow_energy_client/data"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
