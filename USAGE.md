@@ -6,9 +6,7 @@ YAML device profile and either a serial or TCP reader.
 ## One-shot poll
 
 ```python
-from rainbow_energy_client.client import Client
-from rainbow_energy_client.profiles import load_packaged_profile
-from rainbow_energy_client.reader import ModbusReader
+from rainbow_energy_client import Client, ModbusReader, load_packaged_profile
 
 profile = load_packaged_profile("sunsynk_8k_sg05lp1")
 keys = ("battery_soc", "battery_voltage", "pv_power")
@@ -56,7 +54,7 @@ thread) so Modbus polling stays on interval.
 Pass `on_error` to observe them:
 
 ```python
-from rainbow_energy_client.client import ClientError
+from rainbow_energy_client import ClientError
 
 
 def log_error(error: ClientError) -> None:
