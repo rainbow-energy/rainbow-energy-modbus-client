@@ -31,7 +31,6 @@ registers:
     function: holding
     data_type: uint16
     scale: 0.1
-    offset: 100
     unit: "°C"
     access: read
 
