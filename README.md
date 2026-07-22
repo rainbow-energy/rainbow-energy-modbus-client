@@ -10,10 +10,11 @@ structured data. Connect with a USB-RS485 adapter (serial RTU) or via Modbus TCP
 uv add git+https://github.com/rainbow-solar/rainbow-energy-client.git
 ```
 
+After install, the `rainbow-energy-client` CLI is available (see [USAGE.md](USAGE.md)).
+
 ## Usage
 
-See [USAGE.md](USAGE.md) for one-shot and repeated `Client` polling, plus
-error logging.
+See [USAGE.md](USAGE.md) for the Python API, CLI, and error logging.
 
 ## Device profiles
 

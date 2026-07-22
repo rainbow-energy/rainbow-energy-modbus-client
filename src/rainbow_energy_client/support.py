@@ -8,7 +8,13 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from rainbow_energy_client.decode import DecodeError, decode_math, decode_register
-from rainbow_energy_client.profiles import DeviceProfile, ProfileError, RegisterDefinition, load_profile
+from rainbow_energy_client.profiles import (
+    DeviceProfile,
+    ProfileError,
+    RegisterDefinition,
+    load_packaged_profile,
+    load_profile,
+)
 
 SUPPORTED_FUNCTIONS = frozenset({"holding", "input"})
 SUPPORTED_DATA_TYPES = frozenset(
@@ -107,8 +113,37 @@ def check_profile_support(profile: DeviceProfile) -> tuple[UnsupportedFeature, .
     return tuple(issues)
 
 
+def run_check_profile(profile_ref: str) -> int:
+    """Load a profile by path or packaged name and report support status."""
+    path = Path(profile_ref)
+    try:
+        if path.is_file():
+            profile = load_profile(path)
+            label = str(path)
+        else:
+            profile = load_packaged_profile(profile_ref)
+            label = profile_ref
+    except (OSError, ProfileError) as error:
+        print(f"profile error: {error}", file=sys.stderr)
+        return 2
+
+    issues = check_profile_support(profile)
+    if not issues:
+        print(f"{label}: all {len(profile.registers)} registers are supported")
+        return 0
+
+    print(
+        f"{label}: {len(issues)} unsupported "
+        f"feature{'s' if len(issues) != 1 else ''}",
+        file=sys.stderr,
+    )
+    for issue in issues:
+        print(f"  {issue.key}: {issue.reason}", file=sys.stderr)
+    return 1
+
+
 def main(argv: list[str] | None = None) -> int:
-    """Load a profile path and print unsupported features."""
+    """Load a profile path or packaged name and print unsupported features."""
     parser = argparse.ArgumentParser(
         description=(
             "Validate a device profile and list features Rainbow Energy Client cannot "
@@ -117,27 +152,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "profile",
-        type=Path,
-        help="Path to a profile YAML file",
+        help="Path to a profile YAML file, or a packaged profile stem name",
     )
     args = parser.parse_args(argv)
-
-    try:
-        profile = load_profile(args.profile)
-    except (OSError, ProfileError) as error:
-        print(f"profile error: {error}", file=sys.stderr)
-        return 2
-
-    issues = check_profile_support(profile)
-    if not issues:
-        print(f"{args.profile}: all {len(profile.registers)} registers are supported")
-        return 0
-
-    print(
-        f"{args.profile}: {len(issues)} unsupported "
-        f"feature{'s' if len(issues) != 1 else ''}",
-        file=sys.stderr,
-    )
-    for issue in issues:
-        print(f"  {issue.key}: {issue.reason}", file=sys.stderr)
-    return 1
+    return run_check_profile(args.profile)

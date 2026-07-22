@@ -71,6 +71,19 @@ with ModbusReader.tcp(host="modbus-gateway.example", port=502) as reader:
 Constructing a `Client` with no keys raises `ValueError`. Direct `poll()`
 calls still raise `ClientError` to the caller.
 
+## CLI
+
+After install, use the `rainbow-energy-client` command:
+
+```bash
+rainbow-energy-client list-profiles
+rainbow-energy-client check-profile sunsynk_8k_sg05lp1
+rainbow-energy-client check-profile path/to/profile.yaml
+```
+
+`check-profile` exit codes: `0` supported, `1` unsupported features,
+`2` load/schema error.
+
 ## Profiles
 
 See [PROFILES.md](PROFILES.md) for authoring YAML profiles and decode options.

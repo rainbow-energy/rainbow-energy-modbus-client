@@ -1,6 +1,5 @@
 """Test packaged device profiles load and decode successfully."""
 
-from importlib.resources import files
 from pathlib import Path
 
 import pytest
@@ -8,17 +7,13 @@ import pytest
 from rainbow_energy_client.profiles import (
     DeviceProfile,
     ProfileError,
+    list_packaged_profiles,
     load_packaged_profile,
     load_profile,
 )
 from rainbow_energy_client.support import check_profile_support
 
-_DATA_DIR = files("rainbow_energy_client").joinpath("data")
-_PACKAGED_NAMES = sorted(
-    path.name.removesuffix(".yaml")
-    for path in _DATA_DIR.iterdir()
-    if path.name.endswith(".yaml")
-)
+_PACKAGED_NAMES = list_packaged_profiles()
 _DRAFT_DIR = Path(__file__).resolve().parents[1] / "profiles" / "draft"
 _DRAFT_PROFILE_PATHS = sorted(_DRAFT_DIR.glob("*.yaml"))
 
@@ -43,7 +38,7 @@ def test_load_packaged_profile_rejects_unknown_name():
 def test_packaged_profiles_exclude_draft_directory():
     """Draft maps live under profiles/draft/ and are not package data."""
     assert _DRAFT_PROFILE_PATHS, f"expected draft profiles in {_DRAFT_DIR}"
-    assert not _DATA_DIR.joinpath("draft").is_dir()
+    assert "draft" not in _PACKAGED_NAMES
 
 
 @pytest.mark.parametrize(

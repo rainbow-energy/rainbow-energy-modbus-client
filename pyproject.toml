@@ -36,6 +36,9 @@ Repository = "https://github.com/rainbow-solar/rainbow-energy-client"
 Issues = "https://github.com/rainbow-solar/rainbow-energy-client/issues"
 Documentation = "https://github.com/rainbow-solar/rainbow-energy-client#readme"
 
+[project.scripts]
+rainbow-energy-client = "rainbow_energy_client.cli:main"
+
 [dependency-groups]
 dev = [
   "pre-commit>=4.6.0",

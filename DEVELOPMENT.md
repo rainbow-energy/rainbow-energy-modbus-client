@@ -63,6 +63,8 @@ Check which registers a profile uses that Rainbow Energy Client cannot handle ye
 
 ```bash
 make check-profile PROFILE=profiles/draft/sunsynk_8k_sg05lp1.yaml
+# equivalent after install:
+rainbow-energy-client check-profile profiles/draft/sunsynk_8k_sg05lp1.yaml
 ```
 
 The command exits `0` when every register is supported, `1` when unsupported

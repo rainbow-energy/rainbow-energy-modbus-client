@@ -505,3 +505,15 @@ def load_packaged_profile(name: str) -> DeviceProfile:
         raise ProfileError(f"Unknown packaged profile: {name}")
     with as_file(resource) as path:
         return load_profile(path)
+
+
+def list_packaged_profiles() -> tuple[str, ...]:
+    """Return sorted stem names for profiles shipped with the package."""
+    data_dir = files(__package__).joinpath("data")
+    return tuple(
+        sorted(
+            path.name.removesuffix(".yaml")
+            for path in data_dir.iterdir()
+            if path.name.endswith(".yaml")
+        )
+    )

@@ -16,10 +16,23 @@ Use `load_profile(path)` for a custom YAML file on disk.
 Validate a profile (schema, overlaps, and decode support):
 
 ```bash
+rainbow-energy-client check-profile sunsynk_8k_sg05lp1
+rainbow-energy-client check-profile path/to/profile.yaml
+```
+
+During development you can also use:
+
+```bash
 make check-profile PROFILE=src/rainbow_energy_client/data/sunsynk_8k_sg05lp1.yaml
 ```
 
 Exit codes: `0` supported, `1` unsupported features, `2` load/schema error.
+
+List packaged profile names:
+
+```bash
+rainbow-energy-client list-profiles
+```
 
 ## Creating a new profile
 
