@@ -156,3 +156,21 @@ def test_client_run_continues_after_poll_error():
     assert isinstance(errors[0], ClientError)
     assert isinstance(errors[0].__cause__, RegisterReadError)
     assert sleeps == [1.0, 1.0]
+
+
+def test_client_run_with_no_iteration_limit():
+    """Poll until the consumer stops when iterations is None."""
+    profile = make_profile(registers=(make_register(key="battery_soc", address=184),))
+    reader = FakeReader(values=(85,))
+    client = Client(reader, profile, keys=("battery_soc",))
+    sleeps: list[float] = []
+
+    readings: list[tuple] = []
+    for reading in client.run(interval=1.0, iterations=None, sleep=sleeps.append):
+        readings.append(reading)
+        if len(readings) == 3:
+            break
+
+    assert len(readings) == 3
+    assert all(reading[0].value == 85 for reading in readings)
+    assert sleeps == [1.0, 1.0]

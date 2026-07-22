@@ -46,17 +46,14 @@ def log_error(error: ClientError) -> None:
 
 with ModbusReader.tcp(host="modbus-gateway.example", port=502) as reader:
     client = Client(reader, profile, keys=keys)
-    for measurements in client.run(
-        interval=5.0,
-        iterations=12,
-        on_error=log_error,
-    ):
+    for measurements in client.run(interval=5.0, on_error=log_error):
         for measurement in measurements:
             print(measurement.key, measurement.value, measurement.unit)
 ```
 
-`sleep` defaults to `time.sleep`. Pass a custom callable in tests to avoid
-real delays.
+Omit `iterations` (or pass `iterations=None`) to poll until the consumer
+stops. Pass a positive `iterations` for a finite run. `sleep` defaults to
+`time.sleep`; pass a custom callable in tests to avoid real delays.
 
 ## Errors
 

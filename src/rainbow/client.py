@@ -41,20 +41,24 @@ class Client:
         self,
         interval: float,
         *,
-        iterations: int,
+        iterations: int | None = None,
         sleep: Callable[[float], None] = default_sleep,
         on_error: Callable[[ClientError], None] | None = None,
     ) -> Iterator[tuple[Measurement, ...]]:
         """Yield successive polls, sleeping between them by interval seconds.
 
+        When iterations is None, poll until the consumer stops iterating.
         Poll failures raise ClientError from poll(); run catches them, optionally
         reports via on_error, skips yielding that cycle, and continues.
         """
-        for index in range(iterations):
+        completed = 0
+        while True:
             try:
                 yield self.poll()
             except ClientError as error:
                 if on_error is not None:
                     on_error(error)
-            if index + 1 < iterations:
-                sleep(interval)
+            completed += 1
+            if iterations is not None and completed >= iterations:
+                break
+            sleep(interval)
