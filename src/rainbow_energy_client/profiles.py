@@ -2,6 +2,7 @@
 
 from collections.abc import Mapping
 from dataclasses import dataclass
+from importlib.resources import as_file, files
 from pathlib import Path
 from typing import Any, cast
 
@@ -495,3 +496,12 @@ def load_profile(path: str | Path) -> DeviceProfile:
         raise ProfileError(f"Invalid YAML: {error}") from error
 
     return build_device_profile(profile_data)
+
+
+def load_packaged_profile(name: str) -> DeviceProfile:
+    """Load a device profile shipped with the package by stem name."""
+    resource = files(__package__).joinpath("data", f"{name}.yaml")
+    if not resource.is_file():
+        raise ProfileError(f"Unknown packaged profile: {name}")
+    with as_file(resource) as path:
+        return load_profile(path)

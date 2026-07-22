@@ -6,13 +6,11 @@ YAML device profile and either a serial or TCP reader.
 ## One-shot poll
 
 ```python
-from pathlib import Path
-
 from rainbow_energy_client.client import Client
-from rainbow_energy_client.profiles import load_profile
+from rainbow_energy_client.profiles import load_packaged_profile
 from rainbow_energy_client.reader import ModbusReader
 
-profile = load_profile(Path("profiles/sunsynk_8k_sg05lp1.yaml"))
+profile = load_packaged_profile("sunsynk_8k_sg05lp1")
 keys = ("battery_soc", "battery_voltage", "pv_power")
 
 with ModbusReader.serial(port="/dev/ttyUSB0") as reader:

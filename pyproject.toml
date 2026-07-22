@@ -26,6 +26,9 @@ dev = [
 [tool.hatch.build.targets.wheel]
 packages = ["src/rainbow_energy_client"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"src/rainbow_energy_client/data" = "rainbow_energy_client/data"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = [

@@ -7,13 +7,16 @@ device model and how to decode its Modbus registers into named measurements.
 
 | Location | Purpose |
 |----------|---------|
-| [`profiles/`](profiles/) | Production profiles. Must load and be fully supported. |
-| [`profiles/draft/`](profiles/draft/) | Work-in-progress maps for gap analysis. Not used by the app. |
+| [`src/rainbow_energy_client/data/`](src/rainbow_energy_client/data/) | Production profiles shipped with the package. Must load and be fully supported. |
+| [`profiles/draft/`](profiles/draft/) | Work-in-progress maps for gap analysis. Not packaged. |
+
+Load a packaged profile in code with `load_packaged_profile("sunsynk_8k_sg05lp1")`.
+Use `load_profile(path)` for a custom YAML file on disk.
 
 Validate a profile (schema, overlaps, and decode support):
 
 ```bash
-make check-profile PROFILE=profiles/sunsynk_8k_sg05lp1.yaml
+make check-profile PROFILE=src/rainbow_energy_client/data/sunsynk_8k_sg05lp1.yaml
 ```
 
 Exit codes: `0` supported, `1` unsupported features, `2` load/schema error.
@@ -24,7 +27,7 @@ Exit codes: `0` supported, `1` unsupported features, `2` load/schema error.
 2. Set top-level `manufacturer`, `model`, and `registers`.
 3. Add one entry per named value (leaf Modbus register or math sensor).
 4. Run `make check-profile PROFILE=...` until it exits `0`.
-5. Place the file in `profiles/` when it is ready for the app (not `profiles/draft/`).
+5. Place the file in `src/rainbow_energy_client/data/` when it is ready to ship (not `profiles/draft/`).
 
 Keep **one clear meaning per address** (except disjoint `bitmask`s on the same
 word). Do not ship conflicting aliases for the same register.

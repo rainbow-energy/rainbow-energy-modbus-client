@@ -1,6 +1,6 @@
 """Test profile support checking for unimplemented features."""
 
-from pathlib import Path
+from importlib.resources import as_file, files
 from unittest.mock import patch
 
 from rainbow_energy_client.profiles import DeviceProfile, RegisterDefinition, build_device_profile
@@ -249,10 +249,9 @@ registers:
 
 def test_check_profile_script_accepts_supported_profile(capsys):
     """Exit zero when every register in the profile is supported."""
-    profile_path = (
-        Path(__file__).resolve().parents[1] / "profiles" / "sunsynk_8k_sg05lp1.yaml"
-    )
-    exit_code = main([str(profile_path)])
+    resource = files("rainbow_energy_client").joinpath("data", "sunsynk_8k_sg05lp1.yaml")
+    with as_file(resource) as profile_path:
+        exit_code = main([str(profile_path)])
     captured = capsys.readouterr()
 
     assert exit_code == 0

@@ -37,12 +37,12 @@ make test
 
 ## Profile checks
 
-Production profiles live in `profiles/` and must load cleanly with every
-register supported by Rainbow Energy Client. The test suite enforces this for each file in
-that directory.
+Production profiles live in `src/rainbow_energy_client/data/` and must load
+cleanly with every register supported by Rainbow Energy Client. The test suite
+enforces this for each packaged profile.
 
 Work-in-progress maps for gap analysis live in `profiles/draft/`. These are
-excluded from packaged profile tests and are not used by the application.
+excluded from packaged profile tests and are not shipped in the package.
 
 Check which registers a profile uses that Rainbow Energy Client cannot handle yet:
 

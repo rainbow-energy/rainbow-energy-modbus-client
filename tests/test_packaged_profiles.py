@@ -1,35 +1,58 @@
 """Test packaged device profiles load and decode successfully."""
 
+from importlib.resources import files
 from pathlib import Path
 
 import pytest
 
-from rainbow_energy_client.profiles import DeviceProfile, ProfileError, load_profile
+from rainbow_energy_client.profiles import (
+    DeviceProfile,
+    ProfileError,
+    load_packaged_profile,
+    load_profile,
+)
 from rainbow_energy_client.support import check_profile_support
 
-_PROFILES_DIR = Path(__file__).resolve().parents[1] / "profiles"
-_DRAFT_DIR = _PROFILES_DIR / "draft"
-_PROFILE_PATHS = sorted(_PROFILES_DIR.glob("*.yaml"))
+_DATA_DIR = files("rainbow_energy_client").joinpath("data")
+_PACKAGED_NAMES = sorted(
+    path.name.removesuffix(".yaml")
+    for path in _DATA_DIR.iterdir()
+    if path.name.endswith(".yaml")
+)
+_DRAFT_DIR = Path(__file__).resolve().parents[1] / "profiles" / "draft"
 _DRAFT_PROFILE_PATHS = sorted(_DRAFT_DIR.glob("*.yaml"))
 
-assert _PROFILE_PATHS, f"expected profile YAML files in {_PROFILES_DIR}"
+assert _PACKAGED_NAMES, "expected packaged profile YAML files in package data"
 
 
-def test_packaged_profile_paths_exclude_draft_directory():
-    """Production checks only use top-level profiles, never profiles/draft/."""
+def test_load_packaged_profile_by_name():
+    """Load a production profile shipped inside the package by stem name."""
+    profile = load_packaged_profile("sunsynk_8k_sg05lp1")
+
+    assert profile.manufacturer == "Sunsynk"
+    assert profile.model == "SYNK-8K-SG05LP1"
+    assert {register.key for register in profile.registers} >= {"battery_soc"}
+
+
+def test_load_packaged_profile_rejects_unknown_name():
+    """Reject packaged profile names that are not shipped with the package."""
+    with pytest.raises(ProfileError, match="Unknown packaged profile: missing_device"):
+        load_packaged_profile("missing_device")
+
+
+def test_packaged_profiles_exclude_draft_directory():
+    """Draft maps live under profiles/draft/ and are not package data."""
     assert _DRAFT_PROFILE_PATHS, f"expected draft profiles in {_DRAFT_DIR}"
-    assert all(path.parent == _PROFILES_DIR for path in _PROFILE_PATHS)
-    assert not any(path in _PROFILE_PATHS for path in _DRAFT_PROFILE_PATHS)
+    assert not _DATA_DIR.joinpath("draft").is_dir()
 
 
 @pytest.mark.parametrize(
-    "profile_path",
-    _PROFILE_PATHS,
-    ids=[path.name for path in _PROFILE_PATHS],
+    "name",
+    _PACKAGED_NAMES,
 )
-def test_all_profiles_load_successfully(profile_path: Path):
-    """Load every repository profile without validation errors."""
-    profile = load_profile(profile_path)
+def test_all_profiles_load_successfully(name: str):
+    """Load every packaged profile without validation errors."""
+    profile = load_packaged_profile(name)
 
     assert isinstance(profile, DeviceProfile)
     assert profile.manufacturer
@@ -38,13 +61,12 @@ def test_all_profiles_load_successfully(profile_path: Path):
 
 
 @pytest.mark.parametrize(
-    "profile_path",
-    _PROFILE_PATHS,
-    ids=[path.name for path in _PROFILE_PATHS],
+    "name",
+    _PACKAGED_NAMES,
 )
-def test_all_profile_registers_are_supported(profile_path: Path):
-    """Reject repository profiles that use unsupported features."""
-    profile = load_profile(profile_path)
+def test_all_profile_registers_are_supported(name: str):
+    """Reject packaged profiles that use unsupported features."""
+    profile = load_packaged_profile(name)
 
     assert check_profile_support(profile) == ()
 
