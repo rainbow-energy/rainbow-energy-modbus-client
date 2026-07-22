@@ -10,3 +10,4 @@ dist/
 build/
 vendor/register-maps/upstream/
 .coverage
+notes/

@@ -1,7 +1,8 @@
 # Rainbow
 
-A minimal Python library that reads a SunSynk inverter directly through a USB-RS485
-adapter and returns structured data.
+A minimal Python library that reads a SunSynk inverter over Modbus and returns
+structured data. Connect with a USB-RS485 adapter (serial RTU) or via Modbus TCP
+(for example through an `mbusd` gateway).
 
 ## Development
 

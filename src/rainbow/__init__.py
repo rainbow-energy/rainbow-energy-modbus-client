@@ -1,1 +1,1 @@
-"""Direct USB-RS485 reader for SunSynk inverters."""
+"""Direct Modbus reader for SunSynk inverters over serial or TCP."""

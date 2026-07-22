@@ -1,11 +1,11 @@
-"""Read raw Modbus registers through a USB-RS485 adapter."""
+"""Read raw Modbus registers over serial RTU or TCP."""
 
 from collections.abc import Callable
 from dataclasses import dataclass
 from types import TracebackType
 from typing import Protocol, Self
 
-from pymodbus.client import ModbusSerialClient
+from pymodbus.client import ModbusSerialClient, ModbusTcpClient
 from pymodbus.exceptions import ModbusException
 
 
@@ -52,8 +52,8 @@ class RegisterReadError(RuntimeError):
     """Raised when the inverter rejects a register read."""
 
 
-class Rs485Reader:
-    """Read holding and input registers from a Modbus RTU device."""
+class ModbusReader:
+    """Read holding and input registers over Modbus serial or TCP."""
 
     def __init__(
         self,
@@ -68,6 +68,34 @@ class Rs485Reader:
             raise ValueError("device_id must be between 1 and 247")
         self._device_id = device_id
         self._client = client or ModbusSerialClient(port=port, baudrate=9600)
+
+    @classmethod
+    def serial(
+        cls,
+        port: str,
+        device_id: int = 1,
+        client: ModbusClient | None = None,
+    ) -> Self:
+        """Build a reader for a USB-RS485 (or other) serial port."""
+        return cls(port, device_id=device_id, client=client)
+
+    @classmethod
+    def tcp(
+        cls,
+        host: str,
+        port: int = 502,
+        device_id: int = 1,
+        client: ModbusClient | None = None,
+    ) -> Self:
+        """Build a reader for a Modbus TCP endpoint."""
+        if not host.strip():
+            raise ValueError("host must not be empty")
+        if not 1 <= device_id <= 247:
+            raise ValueError("device_id must be between 1 and 247")
+        reader = cls.__new__(cls)
+        reader._device_id = device_id
+        reader._client = client or ModbusTcpClient(host=host, port=port)
+        return reader
 
     def __enter__(self) -> Self:
         """Return the reader for context-managed use."""

@@ -1,10 +1,12 @@
 """Test Modbus register reading and transport handling."""
 
+from unittest.mock import MagicMock
+
 import pytest
 from pymodbus.exceptions import ModbusIOException
 from pymodbus.pdu import ExceptionResponse
 
-from rainbow.reader import RegisterData, RegisterReadError, Rs485Reader
+from rainbow.reader import ModbusReader, RegisterData, RegisterReadError
 
 
 class FakeModbusResponse:
@@ -83,15 +85,15 @@ class TimeoutModbusClient(FakeModbusClient):
         raise ModbusIOException("No response received after retries")
 
 
-def make_reader(**overrides) -> Rs485Reader:
-    """Build an Rs485Reader with the usual test port and device id."""
+def make_reader(**overrides) -> ModbusReader:
+    """Build a ModbusReader with the usual test serial port and device id."""
     values = {
         "port": "/dev/ttyUSB0",
         "device_id": 1,
         "client": FakeModbusClient(),
     }
     values.update(overrides)
-    return Rs485Reader(**values)
+    return ModbusReader.serial(**values)
 
 
 def test_read_holding_registers_returns_structured_data():
@@ -247,3 +249,74 @@ def test_reader_rejects_whitespace_only_serial_port():
     """Reject a serial-port path that contains only whitespace."""
     with pytest.raises(ValueError, match="port must not be empty"):
         make_reader(port="   ")
+
+
+# ---------------------------------------------------------------------------
+# TCP transport
+# ---------------------------------------------------------------------------
+
+
+def test_tcp_reader_builds_modbus_tcp_client(monkeypatch):
+    """Build a TCP reader with the given host and port."""
+    created: dict[str, object] = {}
+
+    def fake_tcp_client(host: str, port: int = 502) -> MagicMock:
+        created["host"] = host
+        created["port"] = port
+        return MagicMock(name="ModbusTcpClient")
+
+    monkeypatch.setattr("rainbow.reader.ModbusTcpClient", fake_tcp_client)
+
+    ModbusReader.tcp(host="modbus-gateway.example", port=1502, device_id=1)
+
+    assert created == {"host": "modbus-gateway.example", "port": 1502}
+
+
+def test_tcp_reader_defaults_to_modbus_port(monkeypatch):
+    """Use Modbus TCP port 502 when no port is given."""
+    created: dict[str, object] = {}
+
+    def fake_tcp_client(host: str, port: int = 502) -> MagicMock:
+        created["host"] = host
+        created["port"] = port
+        return MagicMock(name="ModbusTcpClient")
+
+    monkeypatch.setattr("rainbow.reader.ModbusTcpClient", fake_tcp_client)
+
+    ModbusReader.tcp(host="modbus-gateway.example")
+
+    assert created == {"host": "modbus-gateway.example", "port": 502}
+
+
+def test_tcp_reader_rejects_empty_host():
+    """Reject an empty TCP host."""
+    with pytest.raises(ValueError, match="host must not be empty"):
+        ModbusReader.tcp(host="")
+
+
+def test_tcp_reader_rejects_whitespace_only_host():
+    """Reject a TCP host that contains only whitespace."""
+    with pytest.raises(ValueError, match="host must not be empty"):
+        ModbusReader.tcp(host="   ")
+
+
+def test_tcp_reader_rejects_broadcast_device_id():
+    """Reject the broadcast device ID for TCP readers."""
+    with pytest.raises(ValueError, match="device_id must be between 1 and 247"):
+        ModbusReader.tcp(host="modbus-gateway.example", device_id=0)
+
+
+def test_serial_factory_builds_modbus_serial_client(monkeypatch):
+    """Build a serial reader with the given port."""
+    created: dict[str, object] = {}
+
+    def fake_serial_client(port: str, baudrate: int = 9600) -> MagicMock:
+        created["port"] = port
+        created["baudrate"] = baudrate
+        return MagicMock(name="ModbusSerialClient")
+
+    monkeypatch.setattr("rainbow.reader.ModbusSerialClient", fake_serial_client)
+
+    ModbusReader.serial(port="/dev/ttyUSB0", device_id=1)
+
+    assert created == {"port": "/dev/ttyUSB0", "baudrate": 9600}
