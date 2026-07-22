@@ -4,9 +4,9 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Protocol
 
-from rainbow.decode import Measurement, decode_math, decode_register
-from rainbow.profiles import DeviceProfile, RegisterDefinition
-from rainbow.reader import RegisterData
+from rainbow_energy_client.decode import Measurement, decode_math, decode_register
+from rainbow_energy_client.profiles import DeviceProfile, RegisterDefinition
+from rainbow_energy_client.reader import RegisterData
 
 _MAX_BATCH_COUNT = 125
 _MAX_BATCH_GAP = 16

@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "rainbow"
+name = "rainbow-energy-client"
 version = "0.1.0"
-description = "Minimal Modbus reader for a SunSynk inverter (serial or TCP)"
+description = "Profile-driven client for reading energy device measurements over Modbus (serial or TCP)"
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "Apache-2.0" }
@@ -24,12 +24,12 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/rainbow"]
+packages = ["src/rainbow_energy_client"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = [
-  "--cov=rainbow",
+  "--cov=rainbow_energy_client",
   "--cov-report=term-missing",
 ]
 

@@ -3,9 +3,9 @@
 import pytest
 
 from factories import make_profile, make_register
-from rainbow.client import Client, ClientError
-from rainbow.decode import DecodeError
-from rainbow.reader import RegisterData, RegisterReadError
+from rainbow_energy_client.client import Client, ClientError
+from rainbow_energy_client.decode import DecodeError
+from rainbow_energy_client.reader import RegisterData, RegisterReadError
 
 
 class FakeReader:

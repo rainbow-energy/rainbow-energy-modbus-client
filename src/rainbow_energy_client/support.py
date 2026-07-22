@@ -1,4 +1,4 @@
-"""Report profile features that Rainbow cannot handle yet."""
+"""Report profile features that Rainbow Energy Client cannot handle yet."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-from rainbow.decode import DecodeError, decode_math, decode_register
-from rainbow.profiles import DeviceProfile, ProfileError, RegisterDefinition, load_profile
+from rainbow_energy_client.decode import DecodeError, decode_math, decode_register
+from rainbow_energy_client.profiles import DeviceProfile, ProfileError, RegisterDefinition, load_profile
 
 SUPPORTED_FUNCTIONS = frozenset({"holding", "input"})
 SUPPORTED_DATA_TYPES = frozenset(
@@ -111,7 +111,7 @@ def main(argv: list[str] | None = None) -> int:
     """Load a profile path and print unsupported features."""
     parser = argparse.ArgumentParser(
         description=(
-            "Validate a device profile and list features Rainbow cannot "
+            "Validate a device profile and list features Rainbow Energy Client cannot "
             "handle yet (data types, functions, decode failures)."
         )
     )

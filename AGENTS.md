@@ -1,8 +1,8 @@
-# Rainbow agent guidance
+# Rainbow Energy Client agent guidance
 
 ## Project context
 
-- Rainbow is a small Python library for reading a inverters directly through a
+- Rainbow Energy Client is a small Python library for reading inverters directly through a
   USB-RS485 adapter or Modbus TCP (for example via a serial-to-TCP gateway).
 - Use PyModbus for Modbus RTU/TCP transport; do not reimplement protocol framing, CRC,
   retries, or serial communication.

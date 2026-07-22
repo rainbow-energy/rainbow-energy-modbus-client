@@ -3,10 +3,10 @@
 from collections.abc import Callable, Iterator, Sequence
 from time import sleep as default_sleep
 
-from rainbow.decode import DecodeError, Measurement
-from rainbow.device import RegisterReader, read_measurements
-from rainbow.profiles import DeviceProfile
-from rainbow.reader import RegisterReadError
+from rainbow_energy_client.decode import DecodeError, Measurement
+from rainbow_energy_client.device import RegisterReader, read_measurements
+from rainbow_energy_client.profiles import DeviceProfile
+from rainbow_energy_client.reader import RegisterReadError
 
 
 class ClientError(RuntimeError):

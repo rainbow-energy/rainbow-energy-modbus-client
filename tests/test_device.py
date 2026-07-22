@@ -3,9 +3,9 @@
 import pytest
 
 from factories import make_profile, make_register
-from rainbow.device import _decode_leaf, read_measurement, read_measurements
-from rainbow.profiles import MathSource
-from rainbow.reader import RegisterData
+from rainbow_energy_client.device import _decode_leaf, read_measurement, read_measurements
+from rainbow_energy_client.profiles import MathSource
+from rainbow_energy_client.reader import RegisterData
 
 
 class FakeReader:

@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from rainbow.profiles import DeviceProfile, ProfileError, load_profile
-from rainbow.support import check_profile_support
+from rainbow_energy_client.profiles import DeviceProfile, ProfileError, load_profile
+from rainbow_energy_client.support import check_profile_support
 
 _PROFILES_DIR = Path(__file__).resolve().parents[1] / "profiles"
 _DRAFT_DIR = _PROFILES_DIR / "draft"

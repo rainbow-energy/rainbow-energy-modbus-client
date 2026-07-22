@@ -1,6 +1,6 @@
 # Usage
 
-Rainbow reads named measurements from a SunSynk inverter over Modbus using a
+Rainbow Energy Client reads named measurements from an inverter over Modbus using a
 YAML device profile and either a serial or TCP reader.
 
 ## One-shot poll
@@ -8,9 +8,9 @@ YAML device profile and either a serial or TCP reader.
 ```python
 from pathlib import Path
 
-from rainbow.client import Client
-from rainbow.profiles import load_profile
-from rainbow.reader import ModbusReader
+from rainbow_energy_client.client import Client
+from rainbow_energy_client.profiles import load_profile
+from rainbow_energy_client.reader import ModbusReader
 
 profile = load_profile(Path("profiles/sunsynk_8k_sg05lp1.yaml"))
 keys = ("battery_soc", "battery_voltage", "pv_power")
@@ -58,7 +58,7 @@ thread) so Modbus polling stays on interval.
 Pass `on_error` to observe them:
 
 ```python
-from rainbow.client import ClientError
+from rainbow_energy_client.client import ClientError
 
 
 def log_error(error: ClientError) -> None:

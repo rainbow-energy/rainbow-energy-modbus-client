@@ -1,6 +1,6 @@
 # Device profiles
 
-Rainbow loads inverter register maps from YAML. Each profile describes one
+Rainbow Energy Client loads inverter register maps from YAML. Each profile describes one
 device model and how to decode its Modbus registers into named measurements.
 
 ## Where profiles live
@@ -253,7 +253,7 @@ Rules:
 
 - Each source `key` must exist and must not itself be `math` (no nesting yet).
 - Result: `sum(source_value * factor)`, then `absolute`, then `no_negative`.
-- When reading a math key, Rainbow expands sources, batches leaf Modbus reads,
+- When reading a math key, Rainbow Energy Client expands sources, batches leaf Modbus reads,
   then combines. Requesting a math key and a source key together reuses one
   leaf read.
 
@@ -285,7 +285,7 @@ address if their masks do **not** overlap.
 ### `options`
 
 Map the integer value (after bitmask) to a string label. Require `scale: 1`.
-Unknown values raise a decode error (Rainbow does not return `"unknown N"`
+Unknown values raise a decode error (Rainbow Energy Client does not return `"unknown N"`
 strings). Not allowed with `offset`, `binary`, `string`, or `math`.
 
 Use this for discrete codes such as SD status (`1000` → fault, `2000` → ok).
@@ -325,7 +325,7 @@ Decoded `Measurement.value` types by feature:
 
 ## Not supported yet
 
-These appear in some community maps but are not expressible in Rainbow today:
+These appear in some community maps but are not expressible in Rainbow Energy Client today:
 
 - Non-contiguous multi-register values (for example energy across gaps)
 - Nested math sources

@@ -335,7 +335,7 @@ wheels = [
 ]
 
 [[package]]
-name = "rainbow"
+name = "rainbow-energy-client"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

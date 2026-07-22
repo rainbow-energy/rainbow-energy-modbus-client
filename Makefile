@@ -17,7 +17,7 @@ install-hooks:
 	uv run --locked pre-commit install
 
 test: build
-	docker run --rm rainbow-dev
+	docker run --rm rainbow-energy-client-dev
 
 lint:
 	uv run --locked ruff check .
@@ -25,7 +25,7 @@ lint:
 check: lint test
 
 build:
-	docker build --target development -t rainbow-dev .
+	docker build --target development -t rainbow-energy-client-dev .
 
 check-profile:
 	@test -n "$(PROFILE)" || (echo "Usage: make check-profile PROFILE=path/to/profile.yaml" >&2; exit 2)

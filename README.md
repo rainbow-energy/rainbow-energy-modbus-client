@@ -1,6 +1,6 @@
-# Rainbow
+# Rainbow Energy Client
 
-A minimal Python library that reads a SunSynk inverter over Modbus and returns
+A minimal Python library that reads an inverter over Modbus and returns
 structured data. Connect with a USB-RS485 adapter (serial RTU) or via Modbus TCP
 (for example through an `mbusd` gateway).
 

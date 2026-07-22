@@ -38,13 +38,13 @@ make test
 ## Profile checks
 
 Production profiles live in `profiles/` and must load cleanly with every
-register supported by Rainbow. The test suite enforces this for each file in
+register supported by Rainbow Energy Client. The test suite enforces this for each file in
 that directory.
 
 Work-in-progress maps for gap analysis live in `profiles/draft/`. These are
 excluded from packaged profile tests and are not used by the application.
 
-Check which registers a profile uses that Rainbow cannot handle yet:
+Check which registers a profile uses that Rainbow Energy Client cannot handle yet:
 
 ```bash
 make check-profile PROFILE=profiles/draft/sunsynk_8k_sg05lp1.yaml

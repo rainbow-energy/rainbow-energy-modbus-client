@@ -35,11 +35,11 @@ ENV PATH="/opt/venv/bin:$PATH" \
 
 WORKDIR /app
 
-RUN useradd --create-home --uid 10001 rainbow
+RUN useradd --create-home --uid 10001 energy
 
 COPY --from=build /opt/venv /opt/venv
 
-USER rainbow
+USER energy
 
 # Replaced by the tested application entry point when it is introduced.
 CMD ["python"]
