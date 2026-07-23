@@ -8,7 +8,7 @@ from rainbow_energy_client.decode import Measurement, decode_math, decode_regist
 from rainbow_energy_client.profiles import DeviceProfile, RegisterDefinition
 from rainbow_energy_client.reader import RegisterData
 
-_MAX_BATCH_COUNT = 125
+_MAX_BATCH_COUNT = 32
 _MAX_BATCH_GAP = 16
 
 
