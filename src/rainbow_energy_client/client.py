@@ -4,7 +4,7 @@ from collections.abc import Callable, Iterator, Sequence
 from time import sleep as default_sleep
 
 from rainbow_energy_client.decode import DecodeError, Measurement
-from rainbow_energy_client.device import RegisterReader, read_measurements
+from rainbow_energy_client.device import BatchError, RegisterReader, read_measurements
 from rainbow_energy_client.profiles import DeviceProfile
 from rainbow_energy_client.reader import RegisterReadError
 
@@ -37,12 +37,13 @@ class Client:
     ) -> tuple[Measurement, ...]:
         """Fetch and decode one reading for each configured key.
 
-        When a Modbus batch fails but other measurements succeed, report the
-        failure via *on_error* and still return the successful readings.
+        When a Modbus batch or leaf decode fails but other measurements
+        succeed, report the failure via *on_error* and still return the
+        successful readings.
         """
-        def report_batch_error(error: RegisterReadError) -> None:
+        def report_partial_error(error: BatchError) -> None:
             assert on_error is not None
-            client_error = ClientError("failed to read measurement batch")
+            client_error = ClientError("failed to read measurement")
             client_error.__cause__ = error
             on_error(client_error)
 
@@ -51,7 +52,7 @@ class Client:
                 self._reader,
                 self._profile,
                 self._keys,
-                on_error=report_batch_error if on_error is not None else None,
+                on_error=report_partial_error if on_error is not None else None,
             )
         except (RegisterReadError, DecodeError, KeyError, LookupError) as error:
             raise ClientError("failed to poll measurements") from error
@@ -69,8 +70,8 @@ class Client:
         When iterations is None, poll until the consumer stops iterating.
         Poll failures raise ClientError from poll(); run catches them, optionally
         reports via on_error, skips yielding that cycle, and continues.
-        Partial batch failures are reported via on_error without skipping the
-        successful measurements from that cycle.
+        Partial batch or decode failures are reported via on_error without
+        skipping the successful measurements from that cycle.
         """
         completed = 0
         while True:

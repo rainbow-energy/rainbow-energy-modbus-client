@@ -198,6 +198,38 @@ def test_client_run_reports_skipped_batch_via_on_error():
     assert errors[0].__cause__ is failed
 
 
+def test_client_run_reports_decode_error_via_on_error():
+    """Report a leaf decode failure and still yield successful measurements."""
+    profile = make_profile(
+        registers=(
+            make_register(
+                key="sd_status",
+                address=100,
+                options={1000: "fault", 2000: "ok"},
+            ),
+            make_register(key="grid_power", address=101, data_type="int16"),
+        )
+    )
+    reader = FakeReader(values=(0, 10))
+    client = Client(reader, profile, keys=("sd_status", "grid_power"))
+    errors: list[ClientError] = []
+
+    readings = list(
+        client.run(
+            interval=1.0,
+            iterations=1,
+            sleep=lambda _: None,
+            on_error=errors.append,
+        )
+    )
+
+    assert len(readings) == 1
+    assert [item.key for item in readings[0]] == ["grid_power"]
+    assert len(errors) == 1
+    assert isinstance(errors[0], ClientError)
+    assert isinstance(errors[0].__cause__, DecodeError)
+
+
 def test_client_run_with_no_iteration_limit():
     """Poll until the consumer stops when iterations is None."""
     profile = make_profile(registers=(make_register(key="battery_soc", address=184),))

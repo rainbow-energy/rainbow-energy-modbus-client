@@ -3,6 +3,7 @@
 import pytest
 
 from factories import make_profile, make_register
+from rainbow_energy_client.decode import DecodeError
 from rainbow_energy_client.device import _decode_leaf, read_measurement, read_measurements
 from rainbow_energy_client.profiles import MathSource
 from rainbow_energy_client.reader import RegisterData, RegisterReadError
@@ -200,6 +201,35 @@ def test_read_measurements_reports_skipped_batch_via_on_error():
 
     assert errors == [failed]
     assert [item.key for item in measurements] == ["grid_power"]
+
+
+def test_read_measurements_skips_decode_error():
+    """Skip a leaf that fails to decode and still return other measurements."""
+    profile = make_profile(
+        registers=(
+            make_register(
+                key="sd_status",
+                address=100,
+                options={1000: "fault", 2000: "ok"},
+            ),
+            make_register(key="grid_power", address=101, data_type="int16"),
+        )
+    )
+    reader = FakeReader(responses={100: (0, 10)})
+    errors: list[Exception] = []
+
+    measurements = read_measurements(
+        reader,
+        profile,
+        ("sd_status", "grid_power"),
+        on_error=errors.append,
+    )
+
+    assert [item.key for item in measurements] == ["grid_power"]
+    assert measurements[0].value == 10
+    assert len(errors) == 1
+    assert isinstance(errors[0], DecodeError)
+    assert "unknown option 0" in str(errors[0])
 
 
 # ---------------------------------------------------------------------------

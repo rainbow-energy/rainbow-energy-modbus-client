@@ -4,12 +4,14 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Protocol
 
-from rainbow_energy_client.decode import Measurement, decode_math, decode_register
+from rainbow_energy_client.decode import DecodeError, Measurement, decode_math, decode_register
 from rainbow_energy_client.profiles import DeviceProfile, RegisterDefinition
 from rainbow_energy_client.reader import RegisterData, RegisterReadError
 
 _MAX_BATCH_COUNT = 32
 _MAX_BATCH_GAP = 16
+
+BatchError = RegisterReadError | DecodeError
 
 
 class RegisterReader(Protocol):
@@ -186,18 +188,18 @@ def read_measurements(
     profile: DeviceProfile,
     keys: Sequence[str],
     *,
-    on_error: Callable[[RegisterReadError], None] | None = None,
+    on_error: Callable[[BatchError], None] | None = None,
 ) -> tuple[Measurement, ...]:
     """Read several named registers, batching adjacent Modbus ranges.
 
-    When one Modbus batch fails, skip it and continue with the rest. Call
-    *on_error* for each skipped batch when provided. If every requested
-    measurement is lost to read failures, re-raise the first error.
+    When one Modbus batch or leaf decode fails, skip it and continue with the
+    rest. Call *on_error* for each skipped failure when provided. If every
+    requested measurement is lost, re-raise the first error.
     """
     definitions = tuple(_lookup_register(profile, key) for key in keys)
     leaves = _leaf_definitions(profile, definitions)
     batch_values: dict[tuple[str, int], tuple[int, ...]] = {}
-    read_errors: list[RegisterReadError] = []
+    errors: list[BatchError] = []
     for batch in _plan_batches(leaves):
         try:
             batch_values[(batch.function, batch.start_address)] = _read_register_range(
@@ -207,13 +209,15 @@ def read_measurements(
                 batch.count,
             ).values
         except RegisterReadError as error:
-            read_errors.append(error)
+            errors.append(error)
     decoded: dict[str, Measurement] = {}
     for leaf in leaves:
         try:
             decoded[leaf.key] = _decode_leaf(leaf, batch_values)
         except LookupError:
             continue
+        except DecodeError as error:
+            errors.append(error)
     source_values = _numeric_source_values(decoded)
     measurements = tuple(
         _measurement_for(definition, decoded, source_values)
@@ -224,9 +228,9 @@ def read_measurements(
             and all(source.key in decoded for source in definition.sources)
         )
     )
-    if not measurements and read_errors:
-        raise read_errors[0]
+    if not measurements and errors:
+        raise errors[0]
     if on_error is not None:
-        for error in read_errors:
+        for error in errors:
             on_error(error)
     return measurements

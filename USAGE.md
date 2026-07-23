@@ -50,9 +50,10 @@ thread) so Modbus polling stays on interval.
 `poll()` raises `ClientError` on failure and preserves the underlying cause
 (`RegisterReadError`, `DecodeError`, `KeyError`, or `LookupError`).
 
-When only some Modbus batches fail, `poll()` and `run()` still return the
-successful measurements and report each skipped batch via `on_error` as a
-`ClientError` whose cause is the underlying `RegisterReadError`.
+When only some Modbus batches or leaf decodes fail, `poll()` and `run()` still
+return the successful measurements and report each skipped failure via
+`on_error` as a `ClientError` whose cause is the underlying
+`RegisterReadError` or `DecodeError`.
 
 `run()` also catches total poll failures, skips yielding that cycle, and
 continues. Pass `on_error` to observe both cases:
