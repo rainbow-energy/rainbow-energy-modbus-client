@@ -34,6 +34,12 @@ class ModbusClient(Protocol):
         """Read input registers from one Modbus device."""
         ...
 
+    def write_registers(
+        self, address: int, values: list[int], *, device_id: int
+    ) -> ModbusResponse:
+        """Write holding registers on one Modbus device."""
+        ...
+
     def close(self) -> None:
         """Close the Modbus transport."""
         ...
@@ -50,6 +56,10 @@ class RegisterData:
 
 class RegisterReadError(RuntimeError):
     """Raised when the inverter rejects a register read."""
+
+
+class RegisterWriteError(RuntimeError):
+    """Raised when the inverter rejects a register write."""
 
 
 class ModbusReader:
@@ -130,6 +140,39 @@ class ModbusReader:
             count,
         )
 
+    def write_holding_registers(
+        self, start_address: int, values: tuple[int, ...] | list[int]
+    ) -> None:
+        """Write a contiguous range of holding registers."""
+        values = tuple(values)
+        self._validate_register_range(start_address, len(values))
+        for value in values:
+            if not 0 <= value <= 65535:
+                raise ValueError("register values must be between 0 and 65535")
+        try:
+            response = self._client.write_registers(
+                start_address,
+                list(values),
+                device_id=self._device_id,
+            )
+        except ModbusException as error:
+            raise RegisterWriteError(
+                f"Failed to write registers at address {start_address}: {error}"
+            ) from error
+        if response.isError():
+            raise RegisterWriteError(
+                f"Modbus error writing registers at address {start_address}: {response}"
+            )
+
+    def _validate_register_range(self, start_address: int, count: int) -> None:
+        """Reject an invalid contiguous register address range."""
+        if not 0 <= start_address <= 65535:
+            raise ValueError("start_address must be between 0 and 65535")
+        if not 1 <= count <= 125:
+            raise ValueError("count must be between 1 and 125")
+        if start_address + count - 1 > 65535:
+            raise ValueError("register range exceeds address 65535")
+
     def _read_registers(
         self,
         read: Callable[..., ModbusResponse],
@@ -137,12 +180,7 @@ class ModbusReader:
         count: int,
     ) -> RegisterData:
         """Validate and execute one contiguous register read."""
-        if not 0 <= start_address <= 65535:
-            raise ValueError("start_address must be between 0 and 65535")
-        if not 1 <= count <= 125:
-            raise ValueError("count must be between 1 and 125")
-        if start_address + count - 1 > 65535:
-            raise ValueError("register range exceeds address 65535")
+        self._validate_register_range(start_address, count)
         try:
             response = read(
                 start_address,
