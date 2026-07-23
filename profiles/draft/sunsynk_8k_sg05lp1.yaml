@@ -653,24 +653,6 @@ registers:
     unit: "V"
     access: read
 
-  - key: bat1_soc
-    name: "Bat1 SOC"
-    address: 603
-    function: holding
-    data_type: uint16
-    scale: 1
-    unit: "%"
-    access: read
-
-  - key: bat1_cycle
-    name: "Bat1 Cycle"
-    address: 611
-    function: holding
-    data_type: uint16
-    scale: 1
-    unit: ""
-    access: read
-
   - key: battery_equalization_voltage
     name: "Battery Equalization Voltage"
     address: 201
