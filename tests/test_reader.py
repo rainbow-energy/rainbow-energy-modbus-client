@@ -6,7 +6,12 @@ import pytest
 from pymodbus.exceptions import ModbusIOException
 from pymodbus.pdu import ExceptionResponse
 
-from rainbow_energy_client.reader import ModbusReader, RegisterData, RegisterReadError
+from rainbow_energy_client.reader import (
+    ModbusReader,
+    RegisterData,
+    RegisterReadError,
+    RegisterWriteError,
+)
 
 
 class FakeModbusResponse:
@@ -25,6 +30,7 @@ class FakeModbusClient:
     def __init__(self) -> None:
         """Initialize request and connection state."""
         self.request: tuple[int, int, int] | None = None
+        self.write_request: tuple[int, list[int], int] | None = None
         self.closed = False
 
     def read_holding_registers(
@@ -39,6 +45,13 @@ class FakeModbusClient:
     ) -> object:
         """Record and satisfy an input-register request."""
         self.request = (address, count, device_id)
+        return FakeModbusResponse()
+
+    def write_registers(
+        self, address: int, values: list[int], *, device_id: int
+    ) -> object:
+        """Record and satisfy a holding-register write."""
+        self.write_request = (address, list(values), device_id)
         return FakeModbusResponse()
 
     def close(self) -> None:
@@ -150,6 +163,57 @@ def test_read_holding_registers_wraps_transport_error():
         reader.read_holding_registers(start_address=100, count=3)
 
     assert isinstance(error.value.__cause__, ModbusIOException)
+
+
+def test_write_holding_registers_sends_values():
+    """Write holding-register values through the Modbus client."""
+    client = FakeModbusClient()
+    reader = make_reader(client=client)
+
+    reader.write_holding_registers(start_address=217, values=(20,))
+
+    assert client.write_request == (217, [20], 1)
+
+
+def test_write_holding_registers_wraps_modbus_exception():
+    """Surface transport write failures as RegisterWriteError."""
+    client = FakeModbusClient()
+
+    def fail_write(address: int, values: list[int], *, device_id: int) -> object:
+        raise ModbusIOException("No response received after retries")
+
+    client.write_registers = fail_write  # type: ignore[method-assign]
+    reader = make_reader(client=client)
+
+    with pytest.raises(RegisterWriteError, match="Failed to write registers") as error:
+        reader.write_holding_registers(start_address=217, values=(20,))
+
+    assert isinstance(error.value.__cause__, ModbusIOException)
+
+
+def test_write_holding_registers_rejects_out_of_range_value():
+    """Reject register values outside the 16-bit range."""
+    client = FakeModbusClient()
+    reader = make_reader(client=client)
+
+    with pytest.raises(ValueError, match="register values must be between 0 and 65535"):
+        reader.write_holding_registers(start_address=217, values=(70000,))
+
+    assert client.write_request is None
+
+
+def test_write_holding_registers_wraps_exception_response():
+    """Surface Modbus exception responses as RegisterWriteError."""
+    client = FakeModbusClient()
+
+    def error_write(address: int, values: list[int], *, device_id: int) -> object:
+        return ExceptionResponse(function_code=16, exception_code=2, device_id=device_id)
+
+    client.write_registers = error_write  # type: ignore[method-assign]
+    reader = make_reader(client=client)
+
+    with pytest.raises(RegisterWriteError, match="Modbus error writing registers"):
+        reader.write_holding_registers(start_address=217, values=(20,))
 
 
 def test_read_holding_registers_rejects_zero_count():

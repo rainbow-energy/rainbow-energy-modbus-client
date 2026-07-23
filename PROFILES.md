@@ -95,6 +95,12 @@ Also require `address`, `function`, and `scale`:
 Decode order for leaf registers: **bitmask → typed raw → options or binary or
 (scale then offset)**.
 
+Encode for writes inverts that path: **options/binary/time/datetime or
+(offset then inverse scale) → words**. Bitmasked writes read the current
+holding word, clear the masked bits, OR in the encoded contribution, then
+write the full word. Only `access: write` holding leaf registers are
+writable; math and `access: read` keys are rejected.
+
 ### Math registers
 
 Use `data_type: math`. Do **not** set `address`, `function`, `scale`, or

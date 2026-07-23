@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "rainbow-energy-client"
 version = "0.1.0"
-description = "Profile-driven client for reading energy device measurements over Modbus (serial or TCP)"
+description = "Profile-driven client for reading and writing energy device measurements over Modbus (serial or TCP)"
 readme = "README.md"
 requires-python = ">=3.12"
 license = "Apache-2.0"

@@ -1,28 +1,35 @@
 """Poll named measurements from an inverter using a device profile."""
 
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from time import sleep as default_sleep
 
 from rainbow_energy_client.decode import DecodeError, Measurement
-from rainbow_energy_client.device import BatchError, RegisterReader, read_measurements
+from rainbow_energy_client.device import (
+    BatchError,
+    RegisterTransport,
+    WriteValue,
+    read_measurements,
+    write_measurements,
+)
+from rainbow_energy_client.encode import EncodeError
 from rainbow_energy_client.profiles import DeviceProfile
-from rainbow_energy_client.reader import RegisterReadError
+from rainbow_energy_client.reader import RegisterReadError, RegisterWriteError
 
 
 class ClientError(RuntimeError):
-    """Raised when a client poll cannot return measurements."""
+    """Raised when a client poll or write cannot complete."""
 
 
 class Client:
-    """Read configured measurements from an inverter on demand."""
+    """Read and write configured measurements on an inverter."""
 
     def __init__(
         self,
-        reader: RegisterReader,
+        reader: RegisterTransport,
         profile: DeviceProfile,
         keys: Sequence[str],
     ) -> None:
-        """Bind a Modbus reader, profile, and the keys to poll."""
+        """Bind a Modbus transport, profile, and the keys to poll."""
         keys = tuple(keys)
         if not keys:
             raise ValueError("keys must not be empty")
@@ -56,6 +63,22 @@ class Client:
             )
         except (RegisterReadError, DecodeError, KeyError, LookupError) as error:
             raise ClientError("failed to poll measurements") from error
+
+    def write(self, values: Mapping[str, WriteValue]) -> None:
+        """Encode and write one or more writable profile registers.
+
+        Bitmasked keys perform a read-modify-write of the full register word.
+        """
+        try:
+            write_measurements(self._reader, self._profile, values)
+        except (
+            RegisterWriteError,
+            RegisterReadError,
+            EncodeError,
+            KeyError,
+            ValueError,
+        ) as error:
+            raise ClientError("failed to write measurements") from error
 
     def run(
         self,

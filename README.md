@@ -1,8 +1,8 @@
 # Rainbow Energy Client
 
-A minimal Python library that reads an inverter over Modbus and returns
-structured data. Connect with a USB-RS485 adapter (serial RTU) or via Modbus TCP
-(for example through an `mbusd` gateway).
+A minimal Python library that reads and writes inverter registers over Modbus
+and returns structured data. Connect with a USB-RS485 adapter (serial RTU) or
+via Modbus TCP (for example through an `mbusd` gateway).
 
 ## Install
 

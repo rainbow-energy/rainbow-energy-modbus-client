@@ -5,6 +5,7 @@ import pytest
 from factories import make_profile, make_register
 from rainbow_energy_client.client import Client, ClientError
 from rainbow_energy_client.decode import DecodeError
+from rainbow_energy_client.encode import EncodeError
 from rainbow_energy_client.reader import RegisterData, RegisterReadError
 
 
@@ -15,6 +16,7 @@ class FakeReader:
         """Store values returned by the next read."""
         self.values = values
         self.request: tuple[str, int, int] | None = None
+        self.writes: list[tuple[int, tuple[int, ...]]] = []
 
     def read_holding_registers(self, start_address: int, count: int) -> RegisterData:
         """Record a holding-register request and return canned values."""
@@ -33,6 +35,12 @@ class FakeReader:
             start_address=start_address,
             values=self.values,
         )
+
+    def write_holding_registers(
+        self, start_address: int, values: tuple[int, ...] | list[int]
+    ) -> None:
+        """Record a holding-register write."""
+        self.writes.append((start_address, tuple(values)))
 
 
 def test_client_poll_reads_configured_keys():
@@ -246,3 +254,35 @@ def test_client_run_with_no_iteration_limit():
     assert len(readings) == 3
     assert all(reading[0].value == 85 for reading in readings)
     assert sleeps == [1.0, 1.0]
+
+
+def test_client_write_encodes_and_writes_register():
+    """Write a configured writable register through the client API."""
+    profile = make_profile(
+        registers=(
+            make_register(
+                key="battery_shutdown_capacity",
+                address=217,
+                access="write",
+                unit="%",
+            ),
+            make_register(key="battery_soc", address=184),
+        )
+    )
+    reader = FakeReader()
+    client = Client(reader, profile, keys=("battery_soc",))
+
+    client.write({"battery_shutdown_capacity": 20})
+
+    assert reader.writes == [(217, (20,))]
+
+
+def test_client_write_wraps_encode_error():
+    """Surface encode failures as ClientError with the cause preserved."""
+    profile = make_profile(registers=(make_register(key="battery_soc", address=184),))
+    client = Client(FakeReader(), profile, keys=("battery_soc",))
+
+    with pytest.raises(ClientError, match="failed to write measurements") as raised:
+        client.write({"battery_soc": 50})
+
+    assert isinstance(raised.value.__cause__, EncodeError)

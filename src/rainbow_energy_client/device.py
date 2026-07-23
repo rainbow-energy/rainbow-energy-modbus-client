@@ -1,10 +1,11 @@
-"""Fetch and decode measurements using a device profile."""
+"""Fetch, decode, and write measurements using a device profile."""
 
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Protocol
 
 from rainbow_energy_client.decode import DecodeError, Measurement, decode_math, decode_register
+from rainbow_energy_client.encode import EncodeError, encode_register
 from rainbow_energy_client.profiles import DeviceProfile, RegisterDefinition
 from rainbow_energy_client.reader import RegisterData, RegisterReadError
 
@@ -12,6 +13,7 @@ _MAX_BATCH_COUNT = 32
 _MAX_BATCH_GAP = 16
 
 BatchError = RegisterReadError | DecodeError
+WriteValue = float | int | str | bool
 
 
 class RegisterReader(Protocol):
@@ -24,6 +26,22 @@ class RegisterReader(Protocol):
     def read_input_registers(self, start_address: int, count: int) -> RegisterData:
         """Read a contiguous range of input registers."""
         ...
+
+
+class RegisterWriter(Protocol):
+    """Describe the writer behavior used to update Modbus registers."""
+
+    def write_holding_registers(
+        self, start_address: int, values: tuple[int, ...] | list[int]
+    ) -> None:
+        """Write a contiguous range of holding registers."""
+        ...
+
+
+class RegisterTransport(RegisterReader, RegisterWriter, Protocol):
+    """Describe combined read/write transport used for RMW writes."""
+
+    ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -271,3 +289,63 @@ def read_measurements(
     errors.extend(decode_errors)
     measurements = _collect_measurements(definitions, decoded)
     return _resolve_partial_results(measurements, errors, on_error)
+
+
+def _require_writable(definition: RegisterDefinition) -> None:
+    """Reject registers that are not writable holding leaves."""
+    if definition.access != "write":
+        raise EncodeError(f"register {definition.key} is not writable")
+    if definition.sources is not None:
+        raise EncodeError(f"math register {definition.key} cannot be written")
+    if definition.function != "holding":
+        raise EncodeError(
+            f"register {definition.key} writes require holding registers"
+        )
+    assert definition.address is not None
+
+
+def _merge_bitmask(
+    current: int,
+    encoded: int,
+    bitmask: int,
+) -> int:
+    """Merge encoded masked bits into an existing register word."""
+    return (current & ~bitmask) | (encoded & bitmask)
+
+
+def _words_for_write(
+    transport: RegisterTransport,
+    definition: RegisterDefinition,
+    value: WriteValue,
+) -> tuple[int, ...]:
+    """Encode a value, applying read-modify-write when a bitmask is set."""
+    encoded = encode_register(definition, value)
+    if definition.bitmask is None:
+        return encoded
+    assert definition.address is not None
+    if len(encoded) != 1:
+        raise EncodeError(
+            f"bitmask writes require a single register for {definition.key}"
+        )
+    current = transport.read_holding_registers(definition.address, 1).values[0]
+    return (_merge_bitmask(current, encoded[0], definition.bitmask),)
+
+
+def write_measurements(
+    transport: RegisterTransport,
+    profile: DeviceProfile,
+    values: Mapping[str, WriteValue],
+) -> None:
+    """Encode and write named writable registers.
+
+    Bitmasked registers read the current holding word, merge the encoded bits,
+    then write the full word back.
+    """
+    if not values:
+        raise ValueError("values must not be empty")
+    for key, value in values.items():
+        definition = _lookup_register(profile, key)
+        _require_writable(definition)
+        words = _words_for_write(transport, definition, value)
+        assert definition.address is not None
+        transport.write_holding_registers(definition.address, words)

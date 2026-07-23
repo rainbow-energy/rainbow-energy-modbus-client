@@ -1,7 +1,7 @@
 # Usage
 
-Rainbow Energy Client reads named measurements from an inverter over Modbus using a
-YAML device profile and either a serial or TCP reader.
+Rainbow Energy Client reads and writes named measurements on an inverter over
+Modbus using a YAML device profile and either a serial or TCP transport.
 
 ## One-shot poll
 
@@ -25,6 +25,35 @@ with ModbusReader.tcp(host="modbus-gateway.example", port=502) as reader:
     client = Client(reader, profile, keys=keys)
     measurements = client.poll()
 ```
+
+## Writes
+
+`Client.write` encodes engineering values for profile keys with
+`access: write` and writes holding registers. Poll `keys` still configure
+`poll()` / `run()`; write targets are looked up from the profile by key and
+do not need to be in that list.
+
+```python
+with ModbusReader.tcp(host="modbus-gateway.example", port=502) as reader:
+    client = Client(reader, profile, keys=keys)
+    client.write({
+        "battery_shutdown_capacity": 20,
+        "grid_charge_enabled": True,
+        "aux_port_usage": "Smartload",
+        "prog1_time": "1:30",
+    })
+```
+
+Supported write shapes follow the profile definition:
+
+- numeric `uint16` / `int16` (inverse scale and offset)
+- `options` labels or raw integers
+- `binary` booleans (bitmasked keys read-modify-write the full word)
+- `time` (`H:MM`) and `datetime` (`YYYY-MM-DD H:MM:SS`)
+
+`write()` raises `ClientError` and preserves causes such as
+`RegisterWriteError`, `RegisterReadError` (bitmask RMW), `EncodeError`,
+`KeyError`, or `ValueError`.
 
 ## Repeated polling
 
