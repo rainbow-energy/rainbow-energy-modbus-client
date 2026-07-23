@@ -132,7 +132,7 @@ def _plan_batches(definitions: Sequence[RegisterDefinition]) -> tuple[_RegisterB
 
 def _decode_leaf(
     definition: RegisterDefinition,
-    batch_values: dict[tuple[str, int], tuple[int, ...]],
+    batch_values: Mapping[tuple[str, int], tuple[int, ...]],
 ) -> Measurement:
     """Decode one leaf register from batched Modbus values."""
     assert definition.address is not None
@@ -174,6 +174,74 @@ def _measurement_for(
     return decode_math(definition, source_values)
 
 
+def _read_batches(
+    reader: RegisterReader,
+    leaves: Sequence[RegisterDefinition],
+) -> tuple[dict[tuple[str, int], tuple[int, ...]], list[BatchError]]:
+    """Read planned Modbus batches, collecting read failures."""
+    batch_values: dict[tuple[str, int], tuple[int, ...]] = {}
+    errors: list[BatchError] = []
+    for batch in _plan_batches(leaves):
+        try:
+            batch_values[(batch.function, batch.start_address)] = _read_register_range(
+                reader,
+                batch.function,
+                batch.start_address,
+                batch.count,
+            ).values
+        except RegisterReadError as error:
+            errors.append(error)
+    return batch_values, errors
+
+
+def _decode_leaves(
+    leaves: Sequence[RegisterDefinition],
+    batch_values: Mapping[tuple[str, int], tuple[int, ...]],
+) -> tuple[dict[str, Measurement], list[BatchError]]:
+    """Decode leaf registers from batch values, collecting decode failures."""
+    decoded: dict[str, Measurement] = {}
+    errors: list[BatchError] = []
+    for leaf in leaves:
+        try:
+            decoded[leaf.key] = _decode_leaf(leaf, batch_values)
+        except LookupError:
+            continue
+        except DecodeError as error:
+            errors.append(error)
+    return decoded, errors
+
+
+def _collect_measurements(
+    definitions: Sequence[RegisterDefinition],
+    decoded: Mapping[str, Measurement],
+) -> tuple[Measurement, ...]:
+    """Build measurements for definitions whose leaf data is available."""
+    source_values = _numeric_source_values(decoded)
+    return tuple(
+        _measurement_for(definition, decoded, source_values)
+        for definition in definitions
+        if definition.key in decoded
+        or (
+            definition.sources is not None
+            and all(source.key in decoded for source in definition.sources)
+        )
+    )
+
+
+def _resolve_partial_results(
+    measurements: tuple[Measurement, ...],
+    errors: Sequence[BatchError],
+    on_error: Callable[[BatchError], None] | None,
+) -> tuple[Measurement, ...]:
+    """Raise on total failure, otherwise report partial errors and return."""
+    if not measurements and errors:
+        raise errors[0]
+    if on_error is not None:
+        for error in errors:
+            on_error(error)
+    return measurements
+
+
 def read_measurement(
     reader: RegisterReader,
     profile: DeviceProfile,
@@ -198,39 +266,8 @@ def read_measurements(
     """
     definitions = tuple(_lookup_register(profile, key) for key in keys)
     leaves = _leaf_definitions(profile, definitions)
-    batch_values: dict[tuple[str, int], tuple[int, ...]] = {}
-    errors: list[BatchError] = []
-    for batch in _plan_batches(leaves):
-        try:
-            batch_values[(batch.function, batch.start_address)] = _read_register_range(
-                reader,
-                batch.function,
-                batch.start_address,
-                batch.count,
-            ).values
-        except RegisterReadError as error:
-            errors.append(error)
-    decoded: dict[str, Measurement] = {}
-    for leaf in leaves:
-        try:
-            decoded[leaf.key] = _decode_leaf(leaf, batch_values)
-        except LookupError:
-            continue
-        except DecodeError as error:
-            errors.append(error)
-    source_values = _numeric_source_values(decoded)
-    measurements = tuple(
-        _measurement_for(definition, decoded, source_values)
-        for definition in definitions
-        if definition.key in decoded
-        or (
-            definition.sources is not None
-            and all(source.key in decoded for source in definition.sources)
-        )
-    )
-    if not measurements and errors:
-        raise errors[0]
-    if on_error is not None:
-        for error in errors:
-            on_error(error)
-    return measurements
+    batch_values, errors = _read_batches(reader, leaves)
+    decoded, decode_errors = _decode_leaves(leaves, batch_values)
+    errors.extend(decode_errors)
+    measurements = _collect_measurements(definitions, decoded)
+    return _resolve_partial_results(measurements, errors, on_error)
