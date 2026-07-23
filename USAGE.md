@@ -50,8 +50,12 @@ thread) so Modbus polling stays on interval.
 `poll()` raises `ClientError` on failure and preserves the underlying cause
 (`RegisterReadError`, `DecodeError`, `KeyError`, or `LookupError`).
 
-`run()` catches those failures, skips the failed cycle, and continues.
-Pass `on_error` to observe them:
+When only some Modbus batches fail, `poll()` and `run()` still return the
+successful measurements and report each skipped batch via `on_error` as a
+`ClientError` whose cause is the underlying `RegisterReadError`.
+
+`run()` also catches total poll failures, skips yielding that cycle, and
+continues. Pass `on_error` to observe both cases:
 
 ```python
 from rainbow_energy_client import ClientError
@@ -69,7 +73,7 @@ with ModbusReader.tcp(host="modbus-gateway.example", port=502) as reader:
 ```
 
 Constructing a `Client` with no keys raises `ValueError`. Direct `poll()`
-calls still raise `ClientError` to the caller.
+calls still raise `ClientError` to the caller on total failure.
 
 ## CLI
 

@@ -5,7 +5,7 @@ import pytest
 from factories import make_profile, make_register
 from rainbow_energy_client.device import _decode_leaf, read_measurement, read_measurements
 from rainbow_energy_client.profiles import MathSource
-from rainbow_energy_client.reader import RegisterData
+from rainbow_energy_client.reader import RegisterData, RegisterReadError
 
 
 class FakeReader:
@@ -16,10 +16,12 @@ class FakeReader:
         values: tuple[int, ...] = (),
         *,
         responses: dict[int, tuple[int, ...]] | None = None,
+        errors: dict[int, Exception] | None = None,
     ) -> None:
         """Store default or per-address values for the next reads."""
         self.values = values
         self.responses = responses or {}
+        self.errors = errors or {}
         self.request: tuple[str, int, int] | None = None
         self.requests: list[tuple[str, int, int]] = []
 
@@ -27,25 +29,25 @@ class FakeReader:
         """Return canned values for one register address."""
         return self.responses.get(start_address, self.values)
 
-    def read_holding_registers(self, start_address: int, count: int) -> RegisterData:
-        """Record a holding-register request and return canned values."""
-        self.request = ("holding", start_address, count)
+    def _read(self, function: str, start_address: int, count: int) -> RegisterData:
+        """Record a request; raise or return canned values for the address."""
+        self.request = (function, start_address, count)
         self.requests.append(self.request)
+        if start_address in self.errors:
+            raise self.errors[start_address]
         return RegisterData(
             device_id=1,
             start_address=start_address,
             values=self._values_for(start_address),
         )
 
+    def read_holding_registers(self, start_address: int, count: int) -> RegisterData:
+        """Record a holding-register request and return canned values."""
+        return self._read("holding", start_address, count)
+
     def read_input_registers(self, start_address: int, count: int) -> RegisterData:
         """Record an input-register request and return canned values."""
-        self.request = ("input", start_address, count)
-        self.requests.append(self.request)
-        return RegisterData(
-            device_id=1,
-            start_address=start_address,
-            values=self._values_for(start_address),
-        )
+        return self._read("input", start_address, count)
 
 
 # ---------------------------------------------------------------------------
@@ -151,6 +153,53 @@ def test_read_measurements_keeps_large_gaps_separate():
 
     assert reader.requests == [("holding", 100, 1), ("holding", 118, 1)]
     assert [item.value for item in measurements] == [10, 20]
+
+
+def test_read_measurements_skips_failed_batch():
+    """Skip a failed Modbus batch and still return other measurements."""
+    profile = make_profile(
+        registers=(
+            make_register(key="grid_power", address=100, data_type="int16"),
+            make_register(key="load_power", address=200, data_type="int16"),
+        )
+    )
+    reader = FakeReader(
+        responses={100: (10,)},
+        errors={200: RegisterReadError("gateway rejected address 200")},
+    )
+
+    measurements = read_measurements(
+        reader,
+        profile,
+        ("grid_power", "load_power"),
+    )
+
+    assert reader.requests == [("holding", 100, 1), ("holding", 200, 1)]
+    assert [item.key for item in measurements] == ["grid_power"]
+    assert measurements[0].value == 10
+
+
+def test_read_measurements_reports_skipped_batch_via_on_error():
+    """Call on_error for a failed batch while still returning other measurements."""
+    profile = make_profile(
+        registers=(
+            make_register(key="grid_power", address=100, data_type="int16"),
+            make_register(key="load_power", address=200, data_type="int16"),
+        )
+    )
+    failed = RegisterReadError("gateway rejected address 200")
+    reader = FakeReader(responses={100: (10,)}, errors={200: failed})
+    errors: list[RegisterReadError] = []
+
+    measurements = read_measurements(
+        reader,
+        profile,
+        ("grid_power", "load_power"),
+        on_error=errors.append,
+    )
+
+    assert errors == [failed]
+    assert [item.key for item in measurements] == ["grid_power"]
 
 
 # ---------------------------------------------------------------------------

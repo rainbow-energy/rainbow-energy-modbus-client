@@ -30,10 +30,29 @@ class Client:
         self._profile = profile
         self._keys = keys
 
-    def poll(self) -> tuple[Measurement, ...]:
-        """Fetch and decode one reading for each configured key."""
+    def poll(
+        self,
+        *,
+        on_error: Callable[[ClientError], None] | None = None,
+    ) -> tuple[Measurement, ...]:
+        """Fetch and decode one reading for each configured key.
+
+        When a Modbus batch fails but other measurements succeed, report the
+        failure via *on_error* and still return the successful readings.
+        """
+        def report_batch_error(error: RegisterReadError) -> None:
+            assert on_error is not None
+            client_error = ClientError("failed to read measurement batch")
+            client_error.__cause__ = error
+            on_error(client_error)
+
         try:
-            return read_measurements(self._reader, self._profile, self._keys)
+            return read_measurements(
+                self._reader,
+                self._profile,
+                self._keys,
+                on_error=report_batch_error if on_error is not None else None,
+            )
         except (RegisterReadError, DecodeError, KeyError, LookupError) as error:
             raise ClientError("failed to poll measurements") from error
 
@@ -50,11 +69,13 @@ class Client:
         When iterations is None, poll until the consumer stops iterating.
         Poll failures raise ClientError from poll(); run catches them, optionally
         reports via on_error, skips yielding that cycle, and continues.
+        Partial batch failures are reported via on_error without skipping the
+        successful measurements from that cycle.
         """
         completed = 0
         while True:
             try:
-                yield self.poll()
+                yield self.poll(on_error=on_error)
             except ClientError as error:
                 if on_error is not None:
                     on_error(error)

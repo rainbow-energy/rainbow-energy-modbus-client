@@ -158,6 +158,46 @@ def test_client_run_continues_after_poll_error():
     assert sleeps == [1.0, 1.0]
 
 
+def test_client_run_reports_skipped_batch_via_on_error():
+    """Report a skipped Modbus batch and still yield successful measurements."""
+    profile = make_profile(
+        registers=(
+            make_register(key="grid_power", address=100, data_type="int16"),
+            make_register(key="load_power", address=200, data_type="int16"),
+        )
+    )
+    failed = RegisterReadError("gateway rejected address 200")
+
+    class PartialReader(FakeReader):
+        def read_holding_registers(self, start_address: int, count: int) -> RegisterData:
+            self.request = ("holding", start_address, count)
+            if start_address == 200:
+                raise failed
+            return RegisterData(
+                device_id=1,
+                start_address=start_address,
+                values=(10,),
+            )
+
+    client = Client(PartialReader(), profile, keys=("grid_power", "load_power"))
+    errors: list[ClientError] = []
+
+    readings = list(
+        client.run(
+            interval=1.0,
+            iterations=1,
+            sleep=lambda _: None,
+            on_error=errors.append,
+        )
+    )
+
+    assert len(readings) == 1
+    assert [item.key for item in readings[0]] == ["grid_power"]
+    assert len(errors) == 1
+    assert isinstance(errors[0], ClientError)
+    assert errors[0].__cause__ is failed
+
+
 def test_client_run_with_no_iteration_limit():
     """Poll until the consumer stops when iterations is None."""
     profile = make_profile(registers=(make_register(key="battery_soc", address=184),))
