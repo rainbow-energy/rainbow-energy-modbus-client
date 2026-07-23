@@ -1403,6 +1403,7 @@ registers:
     unit: ""
     access: read
     options:
+      0: unknown
       1000: fault
       2000: ok
 

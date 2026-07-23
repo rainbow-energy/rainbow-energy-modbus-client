@@ -576,6 +576,10 @@ registers:
     scale: 1
     unit: ""
     access: read
+    options:
+      0: unknown
+      1000: fault
+      2000: ok
 
   - key: dc_transformer_temperature
     name: "DC Transformer Temperature"
