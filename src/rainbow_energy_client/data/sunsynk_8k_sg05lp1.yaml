@@ -443,7 +443,7 @@ registers:
     function: holding
     data_type: uint32
     count: 2
-    word_order: big
+    word_order: little
     scale: 0.1
     unit: kWh
     access: read
@@ -454,7 +454,7 @@ registers:
     function: holding
     data_type: uint32
     count: 2
-    word_order: big
+    word_order: little
     scale: 0.1
     unit: kWh
     access: read
@@ -465,7 +465,7 @@ registers:
     function: holding
     data_type: uint32
     count: 2
-    word_order: big
+    word_order: little
     scale: 0.1
     unit: kWh
     access: read
@@ -476,7 +476,7 @@ registers:
     function: holding
     data_type: uint32
     count: 2
-    word_order: big
+    word_order: little
     scale: 0.1
     unit: kWh
     access: read
@@ -487,7 +487,7 @@ registers:
     function: holding
     data_type: uint32
     count: 2
-    word_order: big
+    word_order: little
     scale: 0.1
     unit: kWh
     access: read
@@ -498,7 +498,7 @@ registers:
     function: holding
     data_type: uint32
     count: 2
-    word_order: big
+    word_order: little
     scale: 0.1
     unit: kWh
     access: read
@@ -509,7 +509,7 @@ registers:
     function: holding
     data_type: uint32
     count: 2
-    word_order: big
+    word_order: little
     scale: 0.1
     unit: kWh
     access: read
@@ -520,7 +520,7 @@ registers:
     function: holding
     data_type: uint32
     count: 2
-    word_order: big
+    word_order: little
     scale: 0.1
     unit: kWh
     access: read
@@ -531,7 +531,7 @@ registers:
     function: holding
     data_type: uint32
     count: 2
-    word_order: big
+    word_order: little
     scale: 0.1
     unit: kWh
     access: read
@@ -542,7 +542,7 @@ registers:
     function: holding
     data_type: uint32
     count: 2
-    word_order: big
+    word_order: little
     scale: 0.1
     unit: W
     access: read
