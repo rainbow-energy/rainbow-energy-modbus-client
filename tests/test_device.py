@@ -4,7 +4,13 @@ import pytest
 
 from factories import make_profile, make_register
 from rainbow_energy_modbus_client.decode import DecodeError
-from rainbow_energy_modbus_client.device import _decode_leaf, read_measurement, read_measurements
+from rainbow_energy_modbus_client.device import (
+    _decode_leaf,
+    read_measurement,
+    read_measurements,
+    write_measurements,
+)
+from rainbow_energy_modbus_client.encode import EncodeError
 from rainbow_energy_modbus_client.profiles import MathSource
 from rainbow_energy_modbus_client.reader import RegisterData, RegisterReadError
 
@@ -25,6 +31,7 @@ class FakeReader:
         self.errors = errors or {}
         self.request: tuple[str, int, int] | None = None
         self.requests: list[tuple[str, int, int]] = []
+        self.writes: list[tuple[int, tuple[int, ...]]] = []
 
     def _values_for(self, start_address: int) -> tuple[int, ...]:
         """Return canned values for one register address."""
@@ -49,6 +56,12 @@ class FakeReader:
     def read_input_registers(self, start_address: int, count: int) -> RegisterData:
         """Record an input-register request and return canned values."""
         return self._read("input", start_address, count)
+
+    def write_holding_registers(
+        self, start_address: int, values: tuple[int, ...] | list[int]
+    ) -> None:
+        """Record a holding-register write."""
+        self.writes.append((start_address, tuple(values)))
 
 
 # ---------------------------------------------------------------------------
@@ -304,3 +317,81 @@ def test_decode_leaf_rejects_uncovered_register():
 
     with pytest.raises(LookupError, match="no batch covered register battery_soc"):
         _decode_leaf(definition, {})
+
+
+# ---------------------------------------------------------------------------
+# Writes
+# ---------------------------------------------------------------------------
+
+
+def test_write_measurements_encodes_and_writes_uint16():
+    """Encode a writable uint16 value and write its holding register."""
+    profile = make_profile(
+        registers=(
+            make_register(
+                key="battery_shutdown_capacity",
+                address=217,
+                access="write",
+                unit="%",
+            ),
+        )
+    )
+    reader = FakeReader()
+
+    write_measurements(reader, profile, {"battery_shutdown_capacity": 20})
+
+    assert reader.writes == [(217, (20,))]
+
+
+def test_write_measurements_rejects_read_only_key():
+    """Reject writes to registers marked access read."""
+    profile = make_profile(registers=(make_register(key="battery_soc", address=184),))
+
+    with pytest.raises(EncodeError, match="not writable"):
+        write_measurements(FakeReader(), profile, {"battery_soc": 50})
+
+
+def test_write_measurements_rejects_empty_values():
+    """Reject an empty write mapping before touching the transport."""
+    profile = make_profile(registers=(make_register(key="battery_soc", address=184),))
+
+    with pytest.raises(ValueError, match="values must not be empty"):
+        write_measurements(FakeReader(), profile, {})
+
+
+def test_write_measurements_rejects_math_register():
+    """Reject writes to math registers."""
+    profile = make_profile(
+        registers=(
+            make_register(key="a", address=1),
+            make_register(
+                key="total",
+                data_type="math",
+                access="write",
+                address=None,
+                function=None,
+                scale=None,
+                sources=(MathSource(key="a", factor=1.0),),
+            ),
+        )
+    )
+
+    with pytest.raises(EncodeError, match="math register"):
+        write_measurements(FakeReader(), profile, {"total": 1})
+
+
+def test_write_measurements_rejects_input_function():
+    """Reject writes that target input registers."""
+    profile = make_profile(
+        registers=(
+            make_register(
+                key="setting",
+                address=10,
+                function="input",
+                access="write",
+            ),
+        )
+    )
+
+    with pytest.raises(EncodeError, match="holding registers"):
+        write_measurements(FakeReader(), profile, {"setting": 1})
