@@ -48,7 +48,7 @@ registers:
     address: 190
     function: holding
     data_type: int16
-    scale: 1
+    scale: -1
     unit: W
     access: read
 
