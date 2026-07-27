@@ -3,8 +3,8 @@
 import pytest
 
 from factories import make_register
-from rainbow_energy_client.decode import DecodeError, Measurement, decode_math, decode_register
-from rainbow_energy_client.profiles import MathSource
+from rainbow_energy_modbus_client.decode import DecodeError, Measurement, decode_math, decode_register
+from rainbow_energy_modbus_client.profiles import MathSource
 
 # ---------------------------------------------------------------------------
 # Measurement identity and shared errors

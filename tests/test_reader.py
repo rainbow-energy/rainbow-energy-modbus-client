@@ -6,7 +6,7 @@ import pytest
 from pymodbus.exceptions import ModbusIOException
 from pymodbus.pdu import ExceptionResponse
 
-from rainbow_energy_client.reader import (
+from rainbow_energy_modbus_client.reader import (
     ModbusReader,
     RegisterData,
     RegisterReadError,
@@ -329,7 +329,7 @@ def test_tcp_reader_builds_modbus_tcp_client(monkeypatch):
         created["port"] = port
         return MagicMock(name="ModbusTcpClient")
 
-    monkeypatch.setattr("rainbow_energy_client.reader.ModbusTcpClient", fake_tcp_client)
+    monkeypatch.setattr("rainbow_energy_modbus_client.reader.ModbusTcpClient", fake_tcp_client)
 
     ModbusReader.tcp(host="modbus-gateway.example", port=1502, device_id=1)
 
@@ -345,7 +345,7 @@ def test_tcp_reader_defaults_to_modbus_port(monkeypatch):
         created["port"] = port
         return MagicMock(name="ModbusTcpClient")
 
-    monkeypatch.setattr("rainbow_energy_client.reader.ModbusTcpClient", fake_tcp_client)
+    monkeypatch.setattr("rainbow_energy_modbus_client.reader.ModbusTcpClient", fake_tcp_client)
 
     ModbusReader.tcp(host="modbus-gateway.example")
 
@@ -379,7 +379,7 @@ def test_serial_factory_builds_modbus_serial_client(monkeypatch):
         created["baudrate"] = baudrate
         return MagicMock(name="ModbusSerialClient")
 
-    monkeypatch.setattr("rainbow_energy_client.reader.ModbusSerialClient", fake_serial_client)
+    monkeypatch.setattr("rainbow_energy_modbus_client.reader.ModbusSerialClient", fake_serial_client)
 
     ModbusReader.serial(port="/dev/ttyUSB0", device_id=1)
 

@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "rainbow-energy-client"
+name = "rainbow-energy-modbus-client"
 version = "0.1.0"
 description = "Profile-driven client for reading and writing energy device measurements over Modbus (serial or TCP)"
 readme = "README.md"
@@ -31,13 +31,13 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/rainbow-solar/rainbow-energy-client"
-Repository = "https://github.com/rainbow-solar/rainbow-energy-client"
-Issues = "https://github.com/rainbow-solar/rainbow-energy-client/issues"
-Documentation = "https://github.com/rainbow-solar/rainbow-energy-client#readme"
+Homepage = "https://github.com/rainbow-energy/rainbow-energy-modbus-client"
+Repository = "https://github.com/rainbow-energy/rainbow-energy-modbus-client"
+Issues = "https://github.com/rainbow-energy/rainbow-energy-modbus-client/issues"
+Documentation = "https://github.com/rainbow-energy/rainbow-energy-modbus-client#readme"
 
 [project.scripts]
-rainbow-energy-client = "rainbow_energy_client.cli:main"
+rainbow-energy-modbus-client = "rainbow_energy_modbus_client.cli:main"
 
 [dependency-groups]
 dev = [
@@ -48,12 +48,12 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/rainbow_energy_client"]
+packages = ["src/rainbow_energy_modbus_client"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = [
-  "--cov=rainbow_energy_client",
+  "--cov=rainbow_energy_modbus_client",
   "--cov-report=term-missing",
 ]
 

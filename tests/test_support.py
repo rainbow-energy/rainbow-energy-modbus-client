@@ -3,8 +3,8 @@
 from importlib.resources import as_file, files
 from unittest.mock import patch
 
-from rainbow_energy_client.profiles import DeviceProfile, RegisterDefinition, build_device_profile
-from rainbow_energy_client.support import UnsupportedFeature, check_profile_support, main
+from rainbow_energy_modbus_client.profiles import DeviceProfile, RegisterDefinition, build_device_profile
+from rainbow_energy_modbus_client.support import UnsupportedFeature, check_profile_support, main
 
 
 def test_check_profile_support_reports_unsupported_data_type():
@@ -84,7 +84,7 @@ def test_check_profile_support_reports_decode_failure():
     )
 
     with patch(
-        "rainbow_energy_client.support.decode_register",
+        "rainbow_energy_modbus_client.support.decode_register",
         side_effect=RuntimeError("boom"),
     ):
         issues = check_profile_support(profile)
@@ -238,7 +238,7 @@ registers:
         encoding="utf-8",
     )
 
-    with patch("rainbow_energy_client.support.decode_register", side_effect=RuntimeError("boom")):
+    with patch("rainbow_energy_modbus_client.support.decode_register", side_effect=RuntimeError("boom")):
         exit_code = main([str(profile_path)])
     captured = capsys.readouterr()
 
@@ -249,7 +249,7 @@ registers:
 
 def test_check_profile_script_accepts_supported_profile(capsys):
     """Exit zero when every register in the profile is supported."""
-    resource = files("rainbow_energy_client").joinpath("data", "sunsynk_8k_sg05lp1.yaml")
+    resource = files("rainbow_energy_modbus_client").joinpath("data", "sunsynk_8k_sg05lp1.yaml")
     with as_file(resource) as profile_path:
         exit_code = main([str(profile_path)])
     captured = capsys.readouterr()

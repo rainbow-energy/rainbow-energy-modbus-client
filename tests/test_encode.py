@@ -3,7 +3,7 @@
 import pytest
 
 from factories import make_register
-from rainbow_energy_client.encode import encode_register
+from rainbow_energy_modbus_client.encode import encode_register
 
 
 def test_encode_uint16_applies_inverse_scale():
@@ -85,7 +85,7 @@ def test_encode_int16_with_offset():
 
 def test_encode_uint16_rejects_out_of_range():
     """Reject scaled values outside the unsigned 16-bit range."""
-    from rainbow_energy_client.encode import EncodeError
+    from rainbow_energy_modbus_client.encode import EncodeError
 
     with pytest.raises(EncodeError, match="out of uint16 range"):
         encode_register(make_register(access="write"), 70000)
@@ -93,7 +93,7 @@ def test_encode_uint16_rejects_out_of_range():
 
 def test_encode_int16_rejects_out_of_range():
     """Reject scaled values outside the signed 16-bit range."""
-    from rainbow_energy_client.encode import EncodeError
+    from rainbow_energy_modbus_client.encode import EncodeError
 
     with pytest.raises(EncodeError, match="out of int16 range"):
         encode_register(make_register(data_type="int16", access="write"), 40000)
@@ -111,7 +111,7 @@ def test_encode_options_from_raw_integer():
 
 def test_encode_options_rejects_unknown_label():
     """Reject an options label that is not defined."""
-    from rainbow_energy_client.encode import EncodeError
+    from rainbow_energy_modbus_client.encode import EncodeError
 
     definition = make_register(access="write", options={0: "Disable"})
     with pytest.raises(EncodeError, match="unknown option"):
@@ -120,7 +120,7 @@ def test_encode_options_rejects_unknown_label():
 
 def test_encode_options_rejects_unknown_integer():
     """Reject a raw options integer that is not defined."""
-    from rainbow_energy_client.encode import EncodeError
+    from rainbow_energy_modbus_client.encode import EncodeError
 
     definition = make_register(access="write", options={0: "Disable"})
     with pytest.raises(EncodeError, match="unknown option"):
@@ -129,7 +129,7 @@ def test_encode_options_rejects_unknown_integer():
 
 def test_encode_options_rejects_non_label_non_int():
     """Reject option values that are neither labels nor integers."""
-    from rainbow_energy_client.encode import EncodeError
+    from rainbow_energy_modbus_client.encode import EncodeError
 
     definition = make_register(access="write", options={0: "Disable"})
     with pytest.raises(EncodeError, match="options require a label or integer"):
@@ -138,7 +138,7 @@ def test_encode_options_rejects_non_label_non_int():
 
 def test_encode_binary_rejects_non_bool():
     """Reject binary encodes that are not booleans."""
-    from rainbow_energy_client.encode import EncodeError
+    from rainbow_energy_modbus_client.encode import EncodeError
 
     with pytest.raises(EncodeError, match="binary requires a bool"):
         encode_register(make_register(access="write", binary=True), 1)
@@ -146,7 +146,7 @@ def test_encode_binary_rejects_non_bool():
 
 def test_encode_time_rejects_non_string():
     """Reject time encodes that are not strings."""
-    from rainbow_energy_client.encode import EncodeError
+    from rainbow_energy_modbus_client.encode import EncodeError
 
     with pytest.raises(EncodeError, match="time requires a string"):
         encode_register(make_register(data_type="time", access="write"), 130)
@@ -154,7 +154,7 @@ def test_encode_time_rejects_non_string():
 
 def test_encode_time_rejects_invalid_format():
     """Reject malformed time strings."""
-    from rainbow_energy_client.encode import EncodeError
+    from rainbow_energy_modbus_client.encode import EncodeError
 
     with pytest.raises(EncodeError, match="invalid time"):
         encode_register(make_register(data_type="time", access="write"), "nope")
@@ -162,7 +162,7 @@ def test_encode_time_rejects_invalid_format():
 
 def test_encode_time_rejects_out_of_range():
     """Reject time strings with invalid hour or minute."""
-    from rainbow_energy_client.encode import EncodeError
+    from rainbow_energy_modbus_client.encode import EncodeError
 
     with pytest.raises(EncodeError, match="invalid time"):
         encode_register(make_register(data_type="time", access="write"), "25:00")
@@ -170,7 +170,7 @@ def test_encode_time_rejects_out_of_range():
 
 def test_encode_datetime_rejects_non_string():
     """Reject datetime encodes that are not strings."""
-    from rainbow_energy_client.encode import EncodeError
+    from rainbow_energy_modbus_client.encode import EncodeError
 
     with pytest.raises(EncodeError, match="datetime requires a string"):
         encode_register(
@@ -181,7 +181,7 @@ def test_encode_datetime_rejects_non_string():
 
 def test_encode_datetime_rejects_invalid_format():
     """Reject malformed datetime strings."""
-    from rainbow_energy_client.encode import EncodeError
+    from rainbow_energy_modbus_client.encode import EncodeError
 
     with pytest.raises(EncodeError, match="invalid datetime"):
         encode_register(
@@ -192,7 +192,7 @@ def test_encode_datetime_rejects_invalid_format():
 
 def test_encode_datetime_rejects_out_of_range_fields():
     """Reject datetime strings with impossible calendar fields."""
-    from rainbow_energy_client.encode import EncodeError
+    from rainbow_energy_modbus_client.encode import EncodeError
 
     with pytest.raises(EncodeError, match="invalid datetime"):
         encode_register(
@@ -203,7 +203,7 @@ def test_encode_datetime_rejects_out_of_range_fields():
 
 def test_encode_datetime_rejects_year_before_base():
     """Reject datetime years before the SunSynk 2000 base."""
-    from rainbow_energy_client.encode import EncodeError
+    from rainbow_energy_modbus_client.encode import EncodeError
 
     with pytest.raises(EncodeError, match="invalid datetime"):
         encode_register(
@@ -214,7 +214,7 @@ def test_encode_datetime_rejects_year_before_base():
 
 def test_encode_datetime_rejects_year_past_byte_offset():
     """Reject datetime years that do not fit the single-byte year offset."""
-    from rainbow_energy_client.encode import EncodeError
+    from rainbow_energy_modbus_client.encode import EncodeError
 
     with pytest.raises(EncodeError, match="invalid datetime"):
         encode_register(
@@ -225,8 +225,8 @@ def test_encode_datetime_rejects_year_past_byte_offset():
 
 def test_encode_rejects_math_register():
     """Reject encoding math registers to raw words."""
-    from rainbow_energy_client.encode import EncodeError
-    from rainbow_energy_client.profiles import MathSource
+    from rainbow_energy_modbus_client.encode import EncodeError
+    from rainbow_energy_modbus_client.profiles import MathSource
 
     definition = make_register(
         data_type="math",
@@ -242,7 +242,7 @@ def test_encode_rejects_math_register():
 
 def test_encode_rejects_non_numeric_uint16():
     """Reject non-numeric values for uint16 encodes."""
-    from rainbow_energy_client.encode import EncodeError
+    from rainbow_energy_modbus_client.encode import EncodeError
 
     with pytest.raises(EncodeError, match="uint16 requires a numeric"):
         encode_register(make_register(access="write"), "20")
@@ -250,7 +250,7 @@ def test_encode_rejects_non_numeric_uint16():
 
 def test_encode_rejects_non_numeric_int16():
     """Reject non-numeric values for int16 encodes."""
-    from rainbow_energy_client.encode import EncodeError
+    from rainbow_energy_modbus_client.encode import EncodeError
 
     with pytest.raises(EncodeError, match="int16 requires a numeric"):
         encode_register(make_register(data_type="int16", access="write"), "20")
@@ -258,7 +258,7 @@ def test_encode_rejects_non_numeric_int16():
 
 def test_encode_rejects_unsupported_data_type():
     """Reject data types that have no encoder."""
-    from rainbow_energy_client.encode import EncodeError
+    from rainbow_energy_modbus_client.encode import EncodeError
 
     with pytest.raises(EncodeError, match="unsupported data_type"):
         encode_register(make_register(data_type="string", count=2, access="write"), "x")

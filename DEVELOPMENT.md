@@ -33,7 +33,7 @@ Inspect the wheel contents if you need to confirm packaged profiles or
 `py.typed` are included:
 
 ```bash
-unzip -l dist/rainbow_energy_client-*.whl
+unzip -l dist/rainbow_energy_modbus_client-*.whl
 ```
 
 ## Docker
@@ -52,19 +52,19 @@ make test
 
 ## Profile checks
 
-Production profiles live in `src/rainbow_energy_client/data/` and must load
-cleanly with every register supported by Rainbow Energy Client. The test suite
+Production profiles live in `src/rainbow_energy_modbus_client/data/` and must load
+cleanly with every register supported by Rainbow Energy Modbus Client. The test suite
 enforces this for each packaged profile.
 
 Work-in-progress maps for gap analysis live in `profiles/draft/`. These are
 excluded from packaged profile tests and are not shipped in the package.
 
-Check which registers a profile uses that Rainbow Energy Client cannot handle yet:
+Check which registers a profile uses that Rainbow Energy Modbus Client cannot handle yet:
 
 ```bash
 make check-profile PROFILE=profiles/draft/sunsynk_8k_sg05lp1.yaml
 # equivalent after install:
-rainbow-energy-client check-profile profiles/draft/sunsynk_8k_sg05lp1.yaml
+rainbow-energy-modbus-client check-profile profiles/draft/sunsynk_8k_sg05lp1.yaml
 ```
 
 The command exits `0` when every register is supported, `1` when unsupported

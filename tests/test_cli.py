@@ -1,8 +1,8 @@
-"""Test the packaged rainbow-energy-client CLI."""
+"""Test the packaged rainbow-energy-modbus-client CLI."""
 
-from rainbow_energy_client.cli import main, run_poll
-from rainbow_energy_client.profiles import list_packaged_profiles
-from rainbow_energy_client.reader import RegisterData
+from rainbow_energy_modbus_client.cli import main, run_poll
+from rainbow_energy_modbus_client.profiles import list_packaged_profiles
+from rainbow_energy_modbus_client.reader import RegisterData
 
 
 class FakeReader:
@@ -170,7 +170,7 @@ registers:
         assert device_id == 2
         return ContextFakeReader(values=(85,))
 
-    monkeypatch.setattr("rainbow_energy_client.cli.ModbusReader.tcp", fake_tcp)
+    monkeypatch.setattr("rainbow_energy_modbus_client.cli.ModbusReader.tcp", fake_tcp)
 
     exit_code = main(
         [
@@ -225,7 +225,7 @@ registers:
         assert device_id == 1
         return ContextFakeReader(values=(42,))
 
-    monkeypatch.setattr("rainbow_energy_client.cli.ModbusReader.serial", fake_serial)
+    monkeypatch.setattr("rainbow_energy_modbus_client.cli.ModbusReader.serial", fake_serial)
 
     exit_code = main(
         [

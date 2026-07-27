@@ -3,7 +3,7 @@
 
 import sys
 
-from rainbow_energy_client.cli import main
+from rainbow_energy_modbus_client.cli import main
 
 if __name__ == "__main__":
     raise SystemExit(main(["check-profile", *sys.argv[1:]]))

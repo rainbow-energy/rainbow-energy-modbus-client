@@ -4,14 +4,14 @@ from pathlib import Path
 
 import pytest
 
-from rainbow_energy_client.profiles import (
+from rainbow_energy_modbus_client.profiles import (
     DeviceProfile,
     ProfileError,
     list_packaged_profiles,
     load_packaged_profile,
     load_profile,
 )
-from rainbow_energy_client.support import check_profile_support
+from rainbow_energy_modbus_client.support import check_profile_support
 
 _PACKAGED_NAMES = list_packaged_profiles()
 _DRAFT_DIR = Path(__file__).resolve().parents[1] / "profiles" / "draft"

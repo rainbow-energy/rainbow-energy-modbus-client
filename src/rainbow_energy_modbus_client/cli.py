@@ -1,4 +1,4 @@
-"""Command-line interface for Rainbow Energy Client."""
+"""Command-line interface for Rainbow Energy Modbus Client."""
 
 from __future__ import annotations
 
@@ -7,16 +7,16 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
-from rainbow_energy_client.client import Client, ClientError
-from rainbow_energy_client.device import RegisterReader
-from rainbow_energy_client.profiles import (
+from rainbow_energy_modbus_client.client import Client, ClientError
+from rainbow_energy_modbus_client.device import RegisterReader
+from rainbow_energy_modbus_client.profiles import (
     ProfileError,
     list_packaged_profiles,
     load_packaged_profile,
     load_profile,
 )
-from rainbow_energy_client.reader import ModbusReader
-from rainbow_energy_client.support import run_check_profile
+from rainbow_energy_modbus_client.reader import ModbusReader
+from rainbow_energy_modbus_client.support import run_check_profile
 
 
 def _load_profile_ref(profile_ref: str):
@@ -49,7 +49,7 @@ def run_poll(profile_ref: str, keys: Sequence[str], reader: RegisterReader) -> i
 
 def _build_parser() -> argparse.ArgumentParser:
     """Build the root CLI parser and subcommands."""
-    parser = argparse.ArgumentParser(prog="rainbow-energy-client")
+    parser = argparse.ArgumentParser(prog="rainbow-energy-modbus-client")
     subparsers = parser.add_subparsers(dest="command", required=True)
     subparsers.add_parser("list-profiles", help="List packaged device profile names")
     check_profile = subparsers.add_parser(

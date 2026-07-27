@@ -1,6 +1,6 @@
 """Factories for building test doubles with minimal boilerplate."""
 
-from rainbow_energy_client.profiles import DeviceProfile, RegisterDefinition
+from rainbow_energy_modbus_client.profiles import DeviceProfile, RegisterDefinition
 
 
 def make_register(**overrides) -> RegisterDefinition:

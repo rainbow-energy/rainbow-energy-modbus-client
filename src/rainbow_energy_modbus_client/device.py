@@ -4,10 +4,10 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Protocol
 
-from rainbow_energy_client.decode import DecodeError, Measurement, decode_math, decode_register
-from rainbow_energy_client.encode import EncodeError, encode_register
-from rainbow_energy_client.profiles import DeviceProfile, RegisterDefinition
-from rainbow_energy_client.reader import RegisterData, RegisterReadError
+from rainbow_energy_modbus_client.decode import DecodeError, Measurement, decode_math, decode_register
+from rainbow_energy_modbus_client.encode import EncodeError, encode_register
+from rainbow_energy_modbus_client.profiles import DeviceProfile, RegisterDefinition
+from rainbow_energy_modbus_client.reader import RegisterData, RegisterReadError
 
 _MAX_BATCH_COUNT = 32
 _MAX_BATCH_GAP = 16

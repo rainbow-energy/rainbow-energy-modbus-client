@@ -1,6 +1,6 @@
 """Encode engineering values into raw Modbus register words."""
 
-from rainbow_energy_client.profiles import RegisterDefinition
+from rainbow_energy_modbus_client.profiles import RegisterDefinition
 
 _BITS_PER_BYTE = 8
 _BYTE_MASK = 0xFF

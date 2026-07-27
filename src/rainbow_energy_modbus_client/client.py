@@ -3,17 +3,17 @@
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from time import sleep as default_sleep
 
-from rainbow_energy_client.decode import DecodeError, Measurement
-from rainbow_energy_client.device import (
+from rainbow_energy_modbus_client.decode import DecodeError, Measurement
+from rainbow_energy_modbus_client.device import (
     BatchError,
     RegisterTransport,
     WriteValue,
     read_measurements,
     write_measurements,
 )
-from rainbow_energy_client.encode import EncodeError
-from rainbow_energy_client.profiles import DeviceProfile
-from rainbow_energy_client.reader import RegisterReadError, RegisterWriteError
+from rainbow_energy_modbus_client.encode import EncodeError
+from rainbow_energy_modbus_client.profiles import DeviceProfile
+from rainbow_energy_modbus_client.reader import RegisterReadError, RegisterWriteError
 
 
 class ClientError(RuntimeError):

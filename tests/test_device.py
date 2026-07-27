@@ -3,16 +3,16 @@
 import pytest
 
 from factories import make_profile, make_register
-from rainbow_energy_client.decode import DecodeError
-from rainbow_energy_client.device import (
+from rainbow_energy_modbus_client.decode import DecodeError
+from rainbow_energy_modbus_client.device import (
     _decode_leaf,
     read_measurement,
     read_measurements,
     write_measurements,
 )
-from rainbow_energy_client.encode import EncodeError
-from rainbow_energy_client.profiles import MathSource
-from rainbow_energy_client.reader import RegisterData, RegisterReadError
+from rainbow_energy_modbus_client.encode import EncodeError
+from rainbow_energy_modbus_client.profiles import MathSource
+from rainbow_energy_modbus_client.reader import RegisterData, RegisterReadError
 
 
 class FakeReader:
@@ -512,7 +512,7 @@ def test_write_measurements_rejects_multiword_bitmask(monkeypatch):
     )
 
     monkeypatch.setattr(
-        "rainbow_energy_client.device.encode_register",
+        "rainbow_energy_modbus_client.device.encode_register",
         lambda definition, value: (1, 2),
     )
 
