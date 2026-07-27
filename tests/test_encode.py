@@ -77,3 +77,71 @@ def test_encode_rejects_unsupported_data_type():
     """Reject data types that have no encoder."""
     with pytest.raises(EncodeError, match="unsupported data_type"):
         encode_register(make_register(data_type="string", count=2, access="write"), "x")
+
+
+def test_encode_options_from_label():
+    """Encode an options label into its raw integer."""
+    definition = make_register(
+        access="write",
+        options={0: "Disable", 1: "Smartload", 2: "Generator"},
+    )
+
+    assert encode_register(definition, "Smartload") == (1,)
+
+
+def test_encode_options_from_raw_integer():
+    """Encode a raw options integer when it is a known key."""
+    definition = make_register(
+        access="write",
+        options={0: "Disable", 1: "Smartload"},
+    )
+
+    assert encode_register(definition, 0) == (0,)
+
+
+def test_encode_options_rejects_unknown_label():
+    """Reject an options label that is not defined."""
+    definition = make_register(access="write", options={0: "Disable"})
+    with pytest.raises(EncodeError, match="unknown option"):
+        encode_register(definition, "Missing")
+
+
+def test_encode_options_rejects_unknown_integer():
+    """Reject a raw options integer that is not defined."""
+    definition = make_register(access="write", options={0: "Disable"})
+    with pytest.raises(EncodeError, match="unknown option"):
+        encode_register(definition, 9)
+
+
+def test_encode_options_rejects_non_label_non_int():
+    """Reject option values that are neither labels nor integers."""
+    definition = make_register(access="write", options={0: "Disable"})
+    with pytest.raises(EncodeError, match="options require a label or integer"):
+        encode_register(definition, 1.5)  # type: ignore[arg-type]
+
+
+def test_encode_binary_true_without_bitmask():
+    """Encode True as a single non-zero register word."""
+    definition = make_register(access="write", binary=True)
+
+    assert encode_register(definition, True) == (1,)
+
+
+def test_encode_binary_false_with_bitmask():
+    """Encode False under a bitmask as a zero contribution."""
+    definition = make_register(access="write", binary=True, bitmask=0x1)
+
+    assert encode_register(definition, False) == (0,)
+
+
+def test_encode_binary_true_with_bitmask():
+    """Encode True under a bitmask as the mask bits set."""
+    definition = make_register(access="write", binary=True, bitmask=0x1)
+
+    assert encode_register(definition, True) == (0x1,)
+
+
+def test_encode_binary_rejects_non_bool():
+    """Reject binary encodes that are not booleans."""
+    with pytest.raises(EncodeError, match="binary requires a bool"):
+        encode_register(make_register(access="write", binary=True), 1)

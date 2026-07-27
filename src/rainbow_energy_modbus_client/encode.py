@@ -49,6 +49,32 @@ def _encode_scaled_int16(definition: RegisterDefinition, value: float | int) -> 
     return raw
 
 
+def _encode_options(definition: RegisterDefinition, value: object) -> int:
+    """Map an options label or raw integer to a register word."""
+    assert definition.options is not None
+    if isinstance(value, bool) or not isinstance(value, int):
+        if not isinstance(value, str):
+            raise EncodeError(
+                f"options require a label or integer for {definition.key}"
+            )
+        for raw, label in definition.options.items():
+            if label == value:
+                return raw
+        raise EncodeError(f"unknown option {value!r} for {definition.key}")
+    if value not in definition.options:
+        raise EncodeError(f"unknown option {value} for {definition.key}")
+    return value
+
+
+def _encode_binary(definition: RegisterDefinition, value: object) -> int:
+    """Map a boolean to a non-zero or zero masked contribution."""
+    if not isinstance(value, bool):
+        raise EncodeError(f"binary requires a bool for {definition.key}")
+    if definition.bitmask is not None:
+        return definition.bitmask if value else 0
+    return 1 if value else 0
+
+
 def encode_register(
     definition: RegisterDefinition,
     value: float | int | str | bool,
@@ -58,6 +84,10 @@ def encode_register(
         raise EncodeError(
             f"math register {definition.key} cannot be encoded to raw words"
         )
+    if definition.binary:
+        return (_encode_binary(definition, value),)
+    if definition.options is not None:
+        return (_encode_options(definition, value),)
     match definition.data_type:
         case "uint16":
             if isinstance(value, bool) or not isinstance(value, (int, float)):

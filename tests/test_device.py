@@ -395,3 +395,85 @@ def test_write_measurements_rejects_input_function():
 
     with pytest.raises(EncodeError, match="holding registers"):
         write_measurements(FakeReader(), profile, {"setting": 1})
+
+
+def test_write_measurements_options_label():
+    """Encode an options label and write the raw integer."""
+    profile = make_profile(
+        registers=(
+            make_register(
+                key="aux_port_usage",
+                address=235,
+                access="write",
+                options={0: "Disable", 1: "Smartload", 2: "Generator"},
+            ),
+        )
+    )
+    reader = FakeReader()
+
+    write_measurements(reader, profile, {"aux_port_usage": "Smartload"})
+
+    assert reader.writes == [(235, (1,))]
+
+
+def test_write_measurements_binary_without_bitmask():
+    """Write a binary register as 0 or 1."""
+    profile = make_profile(
+        registers=(
+            make_register(
+                key="inverter_enabled",
+                address=43,
+                access="write",
+                binary=True,
+            ),
+        )
+    )
+    reader = FakeReader()
+
+    write_measurements(reader, profile, {"inverter_enabled": True})
+
+    assert reader.writes == [(43, (1,))]
+
+
+def test_write_measurements_bitmask_read_modify_write():
+    """Merge bitmasked writes into the current holding register word."""
+    profile = make_profile(
+        registers=(
+            make_register(
+                key="grid_charge_enabled",
+                address=232,
+                access="write",
+                binary=True,
+                bitmask=0x1,
+            ),
+        )
+    )
+    reader = FakeReader(responses={232: (0x00F0,)})
+
+    write_measurements(reader, profile, {"grid_charge_enabled": True})
+
+    assert reader.requests == [("holding", 232, 1)]
+    assert reader.writes == [(232, (0x00F1,))]
+
+
+def test_write_measurements_rejects_multiword_bitmask(monkeypatch):
+    """Reject bitmasked writes that encode to more than one register."""
+    profile = make_profile(
+        registers=(
+            make_register(
+                key="flag",
+                address=232,
+                access="write",
+                binary=True,
+                bitmask=0x1,
+            ),
+        )
+    )
+
+    monkeypatch.setattr(
+        "rainbow_energy_modbus_client.device.encode_register",
+        lambda definition, value: (1, 2),
+    )
+
+    with pytest.raises(EncodeError, match="single register"):
+        write_measurements(FakeReader(responses={232: (0,)}), profile, {"flag": True})
