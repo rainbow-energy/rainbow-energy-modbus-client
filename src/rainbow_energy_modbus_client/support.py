@@ -1,4 +1,4 @@
-"""Report profile features that Rainbow Energy Client cannot handle yet."""
+"""Report profile features that Rainbow Energy Modbus Client cannot handle yet."""
 
 from __future__ import annotations
 
@@ -7,8 +7,8 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-from rainbow_energy_client.decode import DecodeError, decode_math, decode_register
-from rainbow_energy_client.profiles import (
+from rainbow_energy_modbus_client.decode import DecodeError, decode_math, decode_register
+from rainbow_energy_modbus_client.profiles import (
     DeviceProfile,
     ProfileError,
     RegisterDefinition,
@@ -146,7 +146,7 @@ def main(argv: list[str] | None = None) -> int:
     """Load a profile path or packaged name and print unsupported features."""
     parser = argparse.ArgumentParser(
         description=(
-            "Validate a device profile and list features Rainbow Energy Client cannot "
+            "Validate a device profile and list features Rainbow Energy Modbus Client cannot "
             "handle yet (data types, functions, decode failures)."
         )
     )

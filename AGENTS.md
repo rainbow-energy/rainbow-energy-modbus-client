@@ -1,8 +1,8 @@
-# Rainbow Energy Client agent guidance
+# Rainbow Energy Modbus Client agent guidance
 
 ## Project context
 
-- Rainbow Energy Client is a small Python library for reading inverters directly through a
+- Rainbow Energy Modbus Client is a small Python library for reading inverters directly through a
   USB-RS485 adapter or Modbus TCP (for example via a serial-to-TCP gateway).
 - Use PyModbus for Modbus RTU/TCP transport; do not reimplement protocol framing, CRC,
   retries, or serial communication.

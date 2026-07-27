@@ -5,7 +5,7 @@ import struct
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
-from rainbow_energy_client.profiles import RegisterDefinition
+from rainbow_energy_modbus_client.profiles import RegisterDefinition
 
 _BITS_PER_BYTE = 8
 _BITS_PER_REGISTER = 16

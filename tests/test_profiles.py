@@ -5,7 +5,7 @@ from unittest.mock import mock_open, patch
 
 import pytest
 
-from rainbow_energy_client.profiles import (
+from rainbow_energy_modbus_client.profiles import (
     ProfileError,
     build_device_profile,
     load_profile,
@@ -627,7 +627,7 @@ def test_build_device_profile_rejects_protocol_with_non_unit_scale():
 
 def test_build_device_profile_supports_math_sources():
     """Allow a math register that combines other register keys."""
-    from rainbow_energy_client.profiles import MathSource
+    from rainbow_energy_modbus_client.profiles import MathSource
 
     profile = build_device_profile(
         {

@@ -335,7 +335,7 @@ wheels = [
 ]
 
 [[package]]
-name = "rainbow-energy-client"
+name = "rainbow-energy-modbus-client"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

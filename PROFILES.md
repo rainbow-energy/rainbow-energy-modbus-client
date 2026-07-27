@@ -1,13 +1,13 @@
 # Device profiles
 
-Rainbow Energy Client loads inverter register maps from YAML. Each profile describes one
+Rainbow Energy Modbus Client loads inverter register maps from YAML. Each profile describes one
 device model and how to decode its Modbus registers into named measurements.
 
 ## Where profiles live
 
 | Location | Purpose |
 |----------|---------|
-| [`src/rainbow_energy_client/data/`](src/rainbow_energy_client/data/) | Production profiles shipped with the package. Must load and be fully supported. |
+| [`src/rainbow_energy_modbus_client/data/`](src/rainbow_energy_modbus_client/data/) | Production profiles shipped with the package. Must load and be fully supported. |
 | [`profiles/draft/`](profiles/draft/) | Work-in-progress maps for gap analysis. Not packaged. |
 
 Load a packaged profile in code with `load_packaged_profile("sunsynk_8k_sg05lp1")`.
@@ -16,14 +16,14 @@ Use `load_profile(path)` for a custom YAML file on disk.
 Validate a profile (schema, overlaps, and decode support):
 
 ```bash
-rainbow-energy-client check-profile sunsynk_8k_sg05lp1
-rainbow-energy-client check-profile path/to/profile.yaml
+rainbow-energy-modbus-client check-profile sunsynk_8k_sg05lp1
+rainbow-energy-modbus-client check-profile path/to/profile.yaml
 ```
 
 During development you can also use:
 
 ```bash
-make check-profile PROFILE=src/rainbow_energy_client/data/sunsynk_8k_sg05lp1.yaml
+make check-profile PROFILE=src/rainbow_energy_modbus_client/data/sunsynk_8k_sg05lp1.yaml
 ```
 
 Exit codes: `0` supported, `1` unsupported features, `2` load/schema error.
@@ -31,7 +31,7 @@ Exit codes: `0` supported, `1` unsupported features, `2` load/schema error.
 List packaged profile names:
 
 ```bash
-rainbow-energy-client list-profiles
+rainbow-energy-modbus-client list-profiles
 ```
 
 ## Creating a new profile
@@ -40,7 +40,7 @@ rainbow-energy-client list-profiles
 2. Set top-level `manufacturer`, `model`, and `registers`.
 3. Add one entry per named value (leaf Modbus register or math sensor).
 4. Run `make check-profile PROFILE=...` until it exits `0`.
-5. Place the file in `src/rainbow_energy_client/data/` when it is ready to ship (not `profiles/draft/`).
+5. Place the file in `src/rainbow_energy_modbus_client/data/` when it is ready to ship (not `profiles/draft/`).
 
 Keep **one clear meaning per address** (except disjoint `bitmask`s on the same
 word). Do not ship conflicting aliases for the same register.
@@ -269,7 +269,7 @@ Rules:
 
 - Each source `key` must exist and must not itself be `math` (no nesting yet).
 - Result: `sum(source_value * factor)`, then `absolute`, then `no_negative`.
-- When reading a math key, Rainbow Energy Client expands sources, batches leaf Modbus reads,
+- When reading a math key, Rainbow Energy Modbus Client expands sources, batches leaf Modbus reads,
   then combines. Requesting a math key and a source key together reuses one
   leaf read.
 
@@ -301,7 +301,7 @@ address if their masks do **not** overlap.
 ### `options`
 
 Map the integer value (after bitmask) to a string label. Require `scale: 1`.
-Unknown values raise a decode error (Rainbow Energy Client does not return `"unknown N"`
+Unknown values raise a decode error (Rainbow Energy Modbus Client does not return `"unknown N"`
 strings). Not allowed with `offset`, `binary`, `string`, or `math`.
 
 Use this for discrete codes such as SD status (`1000` → fault, `2000` → ok).
@@ -341,7 +341,7 @@ Decoded `Measurement.value` types by feature:
 
 ## Not supported yet
 
-These appear in some community maps but are not expressible in Rainbow Energy Client today:
+These appear in some community maps but are not expressible in Rainbow Energy Modbus Client today:
 
 - Non-contiguous multi-register values (for example energy across gaps)
 - Nested math sources
