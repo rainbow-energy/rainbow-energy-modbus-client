@@ -57,7 +57,7 @@ registers:
     address: 191
     function: holding
     data_type: int16
-    scale: 0.01
+    scale: -0.01
     unit: A
     access: read
 
