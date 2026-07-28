@@ -1,5 +1,15 @@
 # syntax=docker/dockerfile:1
 
+# Build production CLI image:
+#   docker build --target production -t rainbow-energy-modbus-client .
+#
+# Build development (lint/tests):
+#   docker build --target development -t rainbow-energy-modbus-client-dev .
+#
+# Check a profile (mount the profiles repo or any directory with YAML maps):
+#   docker run --rm -v "$PWD:/work:ro" -w /work rainbow-energy-modbus-client \
+#     check-profile profiles/sunsynk_8k_sg05lp1.yaml
+
 ARG PYTHON_VERSION=3.13
 ARG UV_VERSION=0.11.29
 
@@ -41,5 +51,5 @@ COPY --from=build /opt/venv /opt/venv
 
 USER energy
 
-# Replaced by the tested application entry point when it is introduced.
-CMD ["python"]
+ENTRYPOINT ["rainbow-energy-modbus-client"]
+CMD ["--help"]

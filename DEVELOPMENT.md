@@ -5,7 +5,7 @@
 ```bash
 make sync
 make install-hooks
-make build
+make build-dev
 ```
 
 ## Checks
@@ -41,7 +41,7 @@ unzip -l dist/rainbow_energy_modbus_client-*.whl
 Build the development image:
 
 ```bash
-make build
+make build-dev
 ```
 
 Run the test suite using that image:
@@ -49,6 +49,18 @@ Run the test suite using that image:
 ```bash
 make test
 ```
+
+Build and run the production CLI image (pushed to GHCR on merges to `main`):
+
+```bash
+make build
+docker run --rm rainbow-energy-modbus-client list-profiles
+docker run --rm -v "$PWD:/work:ro" -w /work rainbow-energy-modbus-client \
+  check-profile profiles/sunsynk_8k_sg05lp1.yaml
+```
+
+Image tags: `latest`, short commit SHA, and CalVer+SHA (for example
+`2026.7.28-a1b2c3d`) at `ghcr.io/rainbow-energy/rainbow-energy-modbus-client`.
 
 ## Profile checks
 
