@@ -12,7 +12,6 @@ from rainbow_energy_modbus_client.profiles import (
     DeviceProfile,
     ProfileError,
     RegisterDefinition,
-    load_packaged_profile,
     load_profile,
 )
 
@@ -113,20 +112,16 @@ def check_profile_support(profile: DeviceProfile) -> tuple[UnsupportedFeature, .
     return tuple(issues)
 
 
-def run_check_profile(profile_ref: str) -> int:
-    """Load a profile by path or packaged name and report support status."""
-    path = Path(profile_ref)
+def run_check_profile(profile_path: str) -> int:
+    """Load a profile YAML path and report support status."""
+    path = Path(profile_path)
     try:
-        if path.is_file():
-            profile = load_profile(path)
-            label = str(path)
-        else:
-            profile = load_packaged_profile(profile_ref)
-            label = profile_ref
+        profile = load_profile(path)
     except (OSError, ProfileError) as error:
         print(f"profile error: {error}", file=sys.stderr)
         return 2
 
+    label = str(path)
     issues = check_profile_support(profile)
     if not issues:
         print(f"{label}: all {len(profile.registers)} registers are supported")
@@ -143,7 +138,7 @@ def run_check_profile(profile_ref: str) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Load a profile path or packaged name and print unsupported features."""
+    """Load a profile YAML path and print unsupported features."""
     parser = argparse.ArgumentParser(
         description=(
             "Validate a device profile and list features Rainbow Energy Modbus Client cannot "
@@ -152,7 +147,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "profile",
-        help="Path to a profile YAML file, or a packaged profile stem name",
+        help="Path to a profile YAML file",
     )
     args = parser.parse_args(argv)
     return run_check_profile(args.profile)

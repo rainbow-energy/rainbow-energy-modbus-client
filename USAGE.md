@@ -6,9 +6,9 @@ YAML device profile and either a serial or TCP reader.
 ## One-shot poll
 
 ```python
-from rainbow_energy_modbus_client import Client, ModbusReader, load_packaged_profile
+from rainbow_energy_modbus_client import Client, ModbusReader, load_profile
 
-profile = load_packaged_profile("sunsynk_8k_sg05lp1")
+profile = load_profile("path/to/sunsynk_8k_sg05lp1.yaml")
 keys = ("battery_soc", "battery_voltage", "pv_power")
 
 with ModbusReader.serial(port="/dev/ttyUSB0") as reader:
@@ -81,8 +81,6 @@ calls still raise `ClientError` to the caller on total failure.
 After install, use the `rainbow-energy-modbus-client` command:
 
 ```bash
-rainbow-energy-modbus-client list-profiles
-rainbow-energy-modbus-client check-profile sunsynk_8k_sg05lp1
 rainbow-energy-modbus-client check-profile path/to/profile.yaml
 ```
 
@@ -93,12 +91,12 @@ Poll named measurements once over Modbus TCP or serial:
 
 ```bash
 rainbow-energy-modbus-client poll \
-  --profile sunsynk_8k_sg05lp1 \
+  --profile path/to/sunsynk_8k_sg05lp1.yaml \
   --key battery_soc --key pv_power \
   --tcp modbus-gateway.example
 
 rainbow-energy-modbus-client poll \
-  --profile sunsynk_8k_sg05lp1 \
+  --profile path/to/sunsynk_8k_sg05lp1.yaml \
   --key battery_soc \
   --serial /dev/ttyUSB0 \
   --device-id 1

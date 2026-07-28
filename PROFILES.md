@@ -5,42 +5,34 @@ device model and how to decode its Modbus registers into named measurements.
 
 ## Where profiles live
 
-| Location | Purpose |
-|----------|---------|
-| [`src/rainbow_energy_modbus_client/data/`](src/rainbow_energy_modbus_client/data/) | Production profiles shipped with the package. Must load and be fully supported. |
-| [`profiles/draft/`](profiles/draft/) | Work-in-progress maps for gap analysis. Not packaged. |
+Device register maps are maintained in
+[rainbow-energy-modbus-profiles](https://github.com/rainbow-energy/rainbow-energy-modbus-profiles).
+This package does not ship YAML maps; load a file from disk:
 
-Load a packaged profile in code with `load_packaged_profile("sunsynk_8k_sg05lp1")`.
-Use `load_profile(path)` for a custom YAML file on disk.
+```python
+from rainbow_energy_modbus_client.profiles import load_profile
+
+profile = load_profile("path/to/sunsynk_8k_sg05lp1.yaml")
+```
 
 Validate a profile (schema, overlaps, and decode support):
 
 ```bash
-rainbow-energy-modbus-client check-profile sunsynk_8k_sg05lp1
 rainbow-energy-modbus-client check-profile path/to/profile.yaml
-```
-
-During development you can also use:
-
-```bash
-make check-profile PROFILE=src/rainbow_energy_modbus_client/data/sunsynk_8k_sg05lp1.yaml
+# or during development:
+make check-profile PROFILE=path/to/profile.yaml
 ```
 
 Exit codes: `0` supported, `1` unsupported features, `2` load/schema error.
 
-List packaged profile names:
-
-```bash
-rainbow-energy-modbus-client list-profiles
-```
-
 ## Creating a new profile
 
-1. Copy an existing production profile or start from a draft map.
+1. Copy an existing map from the profiles repository or start a new YAML file.
 2. Set top-level `manufacturer`, `model`, and `registers`.
 3. Add one entry per named value (leaf Modbus register or math sensor).
 4. Run `make check-profile PROFILE=...` until it exits `0`.
-5. Place the file in `src/rainbow_energy_modbus_client/data/` when it is ready to ship (not `profiles/draft/`).
+5. Open a pull request against
+   [rainbow-energy-modbus-profiles](https://github.com/rainbow-energy/rainbow-energy-modbus-profiles).
 
 Keep **one clear meaning per address** (except disjoint `bitmask`s on the same
 word). Do not ship conflicting aliases for the same register.
@@ -347,8 +339,7 @@ These appear in some community maps but are not expressible in Rainbow Energy Mo
 - Nested math sources
 - Explicit binary `on` values (only nonzero-after-mask)
 
-Use `profiles/draft/` while exploring those, and `make check-profile` to list
-gaps.
+Run `make check-profile PROFILE=path/to/file.yaml` while exploring those gaps.
 
 ## Minimal example
 

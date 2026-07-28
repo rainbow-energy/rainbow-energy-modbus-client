@@ -4,6 +4,9 @@
 
 - Rainbow Energy Modbus Client is a small Python library for reading inverters directly through a
   USB-RS485 adapter or Modbus TCP (for example via a serial-to-TCP gateway).
+- Device register maps are not shipped with this package; they live in
+  [rainbow-energy-modbus-profiles](https://github.com/rainbow-energy/rainbow-energy-modbus-profiles)
+  and are loaded with `load_profile(path)`.
 - Use PyModbus for Modbus RTU/TCP transport; do not reimplement protocol framing, CRC,
   retries, or serial communication.
 - Python dependencies and locking are managed with `uv`.

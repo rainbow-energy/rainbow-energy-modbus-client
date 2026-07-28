@@ -29,8 +29,8 @@ Build an sdist and wheel into `dist/`:
 uv build
 ```
 
-Inspect the wheel contents if you need to confirm packaged profiles or
-`py.typed` are included:
+Inspect the wheel contents if you need to confirm `py.typed` is included and
+no profile YAML is packaged:
 
 ```bash
 unzip -l dist/rainbow_energy_modbus_client-*.whl
@@ -54,8 +54,7 @@ Build and run the production CLI image (pushed to GHCR on merges to `main`):
 
 ```bash
 make build
-docker run --rm rainbow-energy-modbus-client list-profiles
-docker run --rm -v "$PWD:/work:ro" -w /work rainbow-energy-modbus-client \
+docker run --rm -v "$PWD:/profiles:ro" -w /profiles rainbow-energy-modbus-client \
   check-profile profiles/sunsynk_8k_sg05lp1.yaml
 ```
 
@@ -64,19 +63,16 @@ Image tags: `latest`, short commit SHA, and CalVer+SHA (for example
 
 ## Profile checks
 
-Production profiles live in `src/rainbow_energy_modbus_client/data/` and must load
-cleanly with every register supported by Rainbow Energy Modbus Client. The test suite
-enforces this for each packaged profile.
-
-Work-in-progress maps for gap analysis live in `profiles/draft/`. These are
-excluded from packaged profile tests and are not shipped in the package.
+Device maps live in
+[rainbow-energy-modbus-profiles](https://github.com/rainbow-energy/rainbow-energy-modbus-profiles).
+This package loads them only by filesystem path.
 
 Check which registers a profile uses that Rainbow Energy Modbus Client cannot handle yet:
 
 ```bash
-make check-profile PROFILE=profiles/draft/sunsynk_8k_sg05lp1.yaml
+make check-profile PROFILE=path/to/profile.yaml
 # equivalent after install:
-rainbow-energy-modbus-client check-profile profiles/draft/sunsynk_8k_sg05lp1.yaml
+rainbow-energy-modbus-client check-profile path/to/profile.yaml
 ```
 
 The command exits `0` when every register is supported, `1` when unsupported

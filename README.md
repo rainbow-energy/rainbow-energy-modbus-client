@@ -18,8 +18,9 @@ See [USAGE.md](USAGE.md) for the Python API, CLI, and error logging.
 
 ## Device profiles
 
-See [PROFILES.md](PROFILES.md) for how to author YAML profiles, data types,
-and decode options.
+YAML register maps live in
+[rainbow-energy-modbus-profiles](https://github.com/rainbow-energy/rainbow-energy-modbus-profiles).
+See [PROFILES.md](PROFILES.md) for schema, data types, and decode options.
 
 ## Development
 

@@ -5,32 +5,18 @@ from __future__ import annotations
 import argparse
 import sys
 from collections.abc import Sequence
-from pathlib import Path
 
 from rainbow_energy_modbus_client.client import Client, ClientError
 from rainbow_energy_modbus_client.device import RegisterReader
-from rainbow_energy_modbus_client.profiles import (
-    ProfileError,
-    list_packaged_profiles,
-    load_packaged_profile,
-    load_profile,
-)
+from rainbow_energy_modbus_client.profiles import ProfileError, load_profile
 from rainbow_energy_modbus_client.reader import ModbusReader
 from rainbow_energy_modbus_client.support import run_check_profile
 
 
-def _load_profile_ref(profile_ref: str):
-    """Load a profile from a filesystem path or packaged stem name."""
-    path = Path(profile_ref)
-    if path.is_file():
-        return load_profile(path)
-    return load_packaged_profile(profile_ref)
-
-
-def run_poll(profile_ref: str, keys: Sequence[str], reader: RegisterReader) -> int:
+def run_poll(profile_path: str, keys: Sequence[str], reader: RegisterReader) -> int:
     """Poll once and print measurements as key, value, unit lines."""
     try:
-        profile = _load_profile_ref(profile_ref)
+        profile = load_profile(profile_path)
     except (OSError, ProfileError) as error:
         print(f"profile error: {error}", file=sys.stderr)
         return 2
@@ -51,14 +37,13 @@ def _build_parser() -> argparse.ArgumentParser:
     """Build the root CLI parser and subcommands."""
     parser = argparse.ArgumentParser(prog="rainbow-energy-modbus-client")
     subparsers = parser.add_subparsers(dest="command", required=True)
-    subparsers.add_parser("list-profiles", help="List packaged device profile names")
     check_profile = subparsers.add_parser(
         "check-profile",
-        help="Validate a profile path or packaged profile name",
+        help="Validate a profile YAML file",
     )
     check_profile.add_argument(
         "profile",
-        help="Path to a profile YAML file, or a packaged profile stem name",
+        help="Path to a profile YAML file",
     )
     poll = subparsers.add_parser(
         "poll",
@@ -67,7 +52,7 @@ def _build_parser() -> argparse.ArgumentParser:
     poll.add_argument(
         "--profile",
         required=True,
-        help="Path to a profile YAML file, or a packaged profile stem name",
+        help="Path to a profile YAML file",
     )
     poll.add_argument(
         "--key",
@@ -117,10 +102,6 @@ def main(argv: list[str] | None = None) -> int:
         parser.print_usage(sys.stderr)
         return 2
     args = parser.parse_args(argv)
-    if args.command == "list-profiles":
-        for name in list_packaged_profiles():
-            print(name)
-        return 0
     if args.command == "check-profile":
         return run_check_profile(args.profile)
     with _open_reader(args) as reader:

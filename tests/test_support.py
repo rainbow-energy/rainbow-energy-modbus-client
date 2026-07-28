@@ -1,10 +1,32 @@
 """Test profile support checking for unimplemented features."""
 
-from importlib.resources import as_file, files
 from unittest.mock import patch
 
 from rainbow_energy_modbus_client.profiles import DeviceProfile, RegisterDefinition, build_device_profile
 from rainbow_energy_modbus_client.support import UnsupportedFeature, check_profile_support, main
+
+
+def test_check_profile_support_accepts_datetime_registers():
+    """Probe datetime registers with synthetic values during support checks."""
+    profile = DeviceProfile(
+        manufacturer="Example Energy",
+        model="Example 8K",
+        registers=(
+            RegisterDefinition(
+                key="system_time",
+                name="System Time",
+                address=22,
+                function="holding",
+                data_type="datetime",
+                scale=1.0,
+                unit="",
+                access="read",
+                count=3,
+            ),
+        ),
+    )
+
+    assert check_profile_support(profile) == ()
 
 
 def test_check_profile_support_reports_unsupported_data_type():
@@ -247,11 +269,27 @@ registers:
     assert "battery_soc: decode failed: boom" in captured.err
 
 
-def test_check_profile_script_accepts_supported_profile(capsys):
+def test_check_profile_script_accepts_supported_profile(capsys, tmp_path):
     """Exit zero when every register in the profile is supported."""
-    resource = files("rainbow_energy_modbus_client").joinpath("data", "sunsynk_8k_sg05lp1.yaml")
-    with as_file(resource) as profile_path:
-        exit_code = main([str(profile_path)])
+    profile_path = tmp_path / "profile.yaml"
+    profile_path.write_text(
+        """
+manufacturer: Example Energy
+model: Example 8K
+registers:
+  - key: battery_soc
+    name: Battery SOC
+    address: 184
+    function: holding
+    data_type: uint16
+    scale: 1
+    unit: "%"
+    access: read
+""",
+        encoding="utf-8",
+    )
+
+    exit_code = main([str(profile_path)])
     captured = capsys.readouterr()
 
     assert exit_code == 0

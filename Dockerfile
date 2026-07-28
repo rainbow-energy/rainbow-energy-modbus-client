@@ -7,7 +7,7 @@
 #   docker build --target development -t rainbow-energy-modbus-client-dev .
 #
 # Check a profile (mount the profiles repo or any directory with YAML maps):
-#   docker run --rm -v "$PWD:/work:ro" -w /work rainbow-energy-modbus-client \
+#   docker run --rm -v "$PWD:/profiles:ro" -w /profiles rainbow-energy-modbus-client \
 #     check-profile profiles/sunsynk_8k_sg05lp1.yaml
 
 ARG PYTHON_VERSION=3.13
