@@ -477,3 +477,44 @@ def test_write_measurements_rejects_multiword_bitmask(monkeypatch):
 
     with pytest.raises(EncodeError, match="single register"):
         write_measurements(FakeReader(responses={232: (0,)}), profile, {"flag": True})
+
+
+def test_write_measurements_time():
+    """Encode a time string and write one holding register."""
+    profile = make_profile(
+        registers=(
+            make_register(
+                key="prog1_time",
+                address=250,
+                data_type="time",
+                access="write",
+            ),
+        )
+    )
+    reader = FakeReader()
+
+    write_measurements(reader, profile, {"prog1_time": "1:30"})
+
+    assert reader.writes == [(250, (130,))]
+
+
+def test_write_measurements_datetime():
+    """Encode a datetime string and write three holding registers."""
+    profile = make_profile(
+        registers=(
+            make_register(
+                key="date_time",
+                address=22,
+                data_type="datetime",
+                count=3,
+                access="write",
+            ),
+        )
+    )
+    reader = FakeReader()
+
+    write_measurements(reader, profile, {"date_time": "2024-07-23 14:05:09"})
+
+    assert reader.writes == [
+        (22, ((24 << 8) | 7, (23 << 8) | 14, (5 << 8) | 9)),
+    ]

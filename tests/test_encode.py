@@ -145,3 +145,84 @@ def test_encode_binary_rejects_non_bool():
     """Reject binary encodes that are not booleans."""
     with pytest.raises(EncodeError, match="binary requires a bool"):
         encode_register(make_register(access="write", binary=True), 1)
+
+
+def test_encode_time_hhmm():
+    """Encode an H:MM clock string as HHMM-packed minutes."""
+    definition = make_register(data_type="time", access="write")
+
+    assert encode_register(definition, "1:30") == (130,)
+
+
+def test_encode_time_rejects_non_string():
+    """Reject time encodes that are not strings."""
+    with pytest.raises(EncodeError, match="time requires a string"):
+        encode_register(make_register(data_type="time", access="write"), 130)
+
+
+def test_encode_time_rejects_invalid_format():
+    """Reject malformed time strings."""
+    with pytest.raises(EncodeError, match="invalid time"):
+        encode_register(make_register(data_type="time", access="write"), "nope")
+
+
+def test_encode_time_rejects_out_of_range():
+    """Reject time strings with invalid hour or minute."""
+    with pytest.raises(EncodeError, match="invalid time"):
+        encode_register(make_register(data_type="time", access="write"), "25:00")
+
+
+def test_encode_datetime_three_words():
+    """Encode an ISO-like datetime into three SunSynk register words."""
+    definition = make_register(data_type="datetime", count=3, access="write")
+
+    assert encode_register(definition, "2024-07-23 14:05:09") == (
+        (24 << 8) | 7,
+        (23 << 8) | 14,
+        (5 << 8) | 9,
+    )
+
+
+def test_encode_datetime_rejects_non_string():
+    """Reject datetime encodes that are not strings."""
+    with pytest.raises(EncodeError, match="datetime requires a string"):
+        encode_register(
+            make_register(data_type="datetime", count=3, access="write"),
+            1,
+        )
+
+
+def test_encode_datetime_rejects_invalid_format():
+    """Reject malformed datetime strings."""
+    with pytest.raises(EncodeError, match="invalid datetime"):
+        encode_register(
+            make_register(data_type="datetime", count=3, access="write"),
+            "not-a-datetime",
+        )
+
+
+def test_encode_datetime_rejects_out_of_range_fields():
+    """Reject datetime strings with impossible calendar fields."""
+    with pytest.raises(EncodeError, match="invalid datetime"):
+        encode_register(
+            make_register(data_type="datetime", count=3, access="write"),
+            "2024-13-01 0:00:00",
+        )
+
+
+def test_encode_datetime_rejects_year_before_base():
+    """Reject datetime years before the SunSynk 2000 base."""
+    with pytest.raises(EncodeError, match="invalid datetime"):
+        encode_register(
+            make_register(data_type="datetime", count=3, access="write"),
+            "1999-01-01 0:00:00",
+        )
+
+
+def test_encode_datetime_rejects_year_past_byte_offset():
+    """Reject datetime years that do not fit the single-byte year offset."""
+    with pytest.raises(EncodeError, match="invalid datetime"):
+        encode_register(
+            make_register(data_type="datetime", count=3, access="write"),
+            "2256-01-01 0:00:00",
+        )

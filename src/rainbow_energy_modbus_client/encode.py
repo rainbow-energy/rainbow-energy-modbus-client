@@ -2,10 +2,23 @@
 
 from rainbow_energy_modbus_client.profiles import RegisterDefinition
 
+_BITS_PER_BYTE = 8
+_BYTE_MASK = 0xFF
 _UINT16_MAX = 0xFFFF
 _INT16_MIN = -0x8000
 _INT16_MAX = 0x7FFF
 _UINT16_RANGE = 0x10000
+_HHMM_FACTOR = 100
+_MINUTES_PER_HOUR = 60
+_HOURS_PER_DAY = 24
+_DATETIME_YEAR_BASE = 2000
+_MIN_MONTH = 1
+_MAX_MONTH = 12
+_MIN_DAY = 1
+_MAX_DAY = 31
+_MAX_HOUR = 23
+_MAX_MINUTE = 59
+_MAX_SECOND = 59
 
 
 class EncodeError(ValueError):
@@ -75,6 +88,58 @@ def _encode_binary(definition: RegisterDefinition, value: object) -> int:
     return 1 if value else 0
 
 
+def _encode_time(definition: RegisterDefinition, value: object) -> int:
+    """Encode an H:MM or HH:MM clock string as HHMM-packed minutes."""
+    if not isinstance(value, str):
+        raise EncodeError(f"time requires a string for {definition.key}")
+    try:
+        hour_text, minute_text = value.split(":", 1)
+        hours = int(hour_text)
+        minutes = int(minute_text)
+    except ValueError as error:
+        raise EncodeError(f"invalid time for {definition.key}: {value!r}") from error
+    if not (0 <= hours < _HOURS_PER_DAY and 0 <= minutes < _MINUTES_PER_HOUR):
+        raise EncodeError(f"invalid time for {definition.key}: {value!r}")
+    return hours * _HHMM_FACTOR + minutes
+
+
+def _encode_datetime(definition: RegisterDefinition, value: object) -> tuple[int, int, int]:
+    """Encode an ISO-like datetime string into three SunSynk register words."""
+    if not isinstance(value, str):
+        raise EncodeError(f"datetime requires a string for {definition.key}")
+    try:
+        date_text, time_text = value.split(" ", 1)
+        year_text, month_text, day_text = date_text.split("-", 2)
+        hour_text, minute_text, second_text = time_text.split(":", 2)
+        year = int(year_text)
+        month = int(month_text)
+        day = int(day_text)
+        hour = int(hour_text)
+        minute = int(minute_text)
+        second = int(second_text)
+    except ValueError as error:
+        raise EncodeError(
+            f"invalid datetime for {definition.key}: {value!r}"
+        ) from error
+    if not (
+        year >= _DATETIME_YEAR_BASE
+        and _MIN_MONTH <= month <= _MAX_MONTH
+        and _MIN_DAY <= day <= _MAX_DAY
+        and 0 <= hour <= _MAX_HOUR
+        and 0 <= minute <= _MAX_MINUTE
+        and 0 <= second <= _MAX_SECOND
+    ):
+        raise EncodeError(f"invalid datetime for {definition.key}: {value!r}")
+    year_offset = year - _DATETIME_YEAR_BASE
+    if year_offset > _BYTE_MASK:
+        raise EncodeError(f"invalid datetime for {definition.key}: {value!r}")
+    return (
+        (year_offset << _BITS_PER_BYTE) | month,
+        (day << _BITS_PER_BYTE) | hour,
+        (minute << _BITS_PER_BYTE) | second,
+    )
+
+
 def encode_register(
     definition: RegisterDefinition,
     value: float | int | str | bool,
@@ -101,5 +166,9 @@ def encode_register(
                     f"int16 requires a numeric value for {definition.key}"
                 )
             return (_encode_scaled_int16(definition, value),)
+        case "time":
+            return (_encode_time(definition, value),)
+        case "datetime":
+            return _encode_datetime(definition, value)
         case _:
             raise EncodeError(f"unsupported data_type: {definition.data_type}")
