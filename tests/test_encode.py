@@ -6,6 +6,10 @@ from factories import make_register
 from rainbow_energy_modbus_client.encode import EncodeError, encode_register
 from rainbow_energy_modbus_client.profiles import MathSource
 
+# ---------------------------------------------------------------------------
+# uint16, scale, and offset
+# ---------------------------------------------------------------------------
+
 
 def test_encode_uint16_applies_inverse_scale():
     """Encode an engineering value back to raw words using inverse scale."""
@@ -19,6 +23,23 @@ def test_encode_uint16_applies_offset_before_inverse_scale():
     definition = make_register(scale=0.1, offset=100, access="write")
 
     assert encode_register(definition, 25.0) == (1250,)
+
+
+def test_encode_uint16_rejects_out_of_range():
+    """Reject scaled values outside the unsigned 16-bit range."""
+    with pytest.raises(EncodeError, match="out of uint16 range"):
+        encode_register(make_register(access="write"), 70000)
+
+
+def test_encode_rejects_non_numeric_uint16():
+    """Reject non-numeric values for uint16 encodes."""
+    with pytest.raises(EncodeError, match="uint16 requires a numeric"):
+        encode_register(make_register(access="write"), "20")
+
+
+# ---------------------------------------------------------------------------
+# int16
+# ---------------------------------------------------------------------------
 
 
 def test_encode_int16_negative_value():
@@ -35,36 +56,10 @@ def test_encode_int16_with_offset():
     assert encode_register(definition, -90.0) == (100,)
 
 
-def test_encode_uint16_rejects_out_of_range():
-    """Reject scaled values outside the unsigned 16-bit range."""
-    with pytest.raises(EncodeError, match="out of uint16 range"):
-        encode_register(make_register(access="write"), 70000)
-
-
 def test_encode_int16_rejects_out_of_range():
     """Reject scaled values outside the signed 16-bit range."""
     with pytest.raises(EncodeError, match="out of int16 range"):
         encode_register(make_register(data_type="int16", access="write"), 40000)
-
-
-def test_encode_rejects_math_register():
-    """Reject encoding math registers to raw words."""
-    definition = make_register(
-        data_type="math",
-        address=None,
-        function=None,
-        scale=None,
-        count=1,
-        sources=(MathSource(key="a", factor=1.0),),
-    )
-    with pytest.raises(EncodeError, match="cannot be encoded"):
-        encode_register(definition, 1)
-
-
-def test_encode_rejects_non_numeric_uint16():
-    """Reject non-numeric values for uint16 encodes."""
-    with pytest.raises(EncodeError, match="uint16 requires a numeric"):
-        encode_register(make_register(access="write"), "20")
 
 
 def test_encode_rejects_non_numeric_int16():
@@ -73,10 +68,9 @@ def test_encode_rejects_non_numeric_int16():
         encode_register(make_register(data_type="int16", access="write"), "20")
 
 
-def test_encode_rejects_unsupported_data_type():
-    """Reject data types that have no encoder."""
-    with pytest.raises(EncodeError, match="unsupported data_type"):
-        encode_register(make_register(data_type="string", count=2, access="write"), "x")
+# ---------------------------------------------------------------------------
+# options
+# ---------------------------------------------------------------------------
 
 
 def test_encode_options_from_label():
@@ -120,6 +114,11 @@ def test_encode_options_rejects_non_label_non_int():
         encode_register(definition, 1.5)  # type: ignore[arg-type]
 
 
+# ---------------------------------------------------------------------------
+# binary
+# ---------------------------------------------------------------------------
+
+
 def test_encode_binary_true_without_bitmask():
     """Encode True as a single non-zero register word."""
     definition = make_register(access="write", binary=True)
@@ -147,6 +146,11 @@ def test_encode_binary_rejects_non_bool():
         encode_register(make_register(access="write", binary=True), 1)
 
 
+# ---------------------------------------------------------------------------
+# time
+# ---------------------------------------------------------------------------
+
+
 def test_encode_time_hhmm():
     """Encode an H:MM clock string as HHMM-packed minutes."""
     definition = make_register(data_type="time", access="write")
@@ -170,6 +174,11 @@ def test_encode_time_rejects_out_of_range():
     """Reject time strings with invalid hour or minute."""
     with pytest.raises(EncodeError, match="invalid time"):
         encode_register(make_register(data_type="time", access="write"), "25:00")
+
+
+# ---------------------------------------------------------------------------
+# datetime
+# ---------------------------------------------------------------------------
 
 
 def test_encode_datetime_three_words():
@@ -226,3 +235,28 @@ def test_encode_datetime_rejects_year_past_byte_offset():
             make_register(data_type="datetime", count=3, access="write"),
             "2256-01-01 0:00:00",
         )
+
+
+# ---------------------------------------------------------------------------
+# math and unsupported
+# ---------------------------------------------------------------------------
+
+
+def test_encode_rejects_math_register():
+    """Reject encoding math registers to raw words."""
+    definition = make_register(
+        data_type="math",
+        address=None,
+        function=None,
+        scale=None,
+        count=1,
+        sources=(MathSource(key="a", factor=1.0),),
+    )
+    with pytest.raises(EncodeError, match="cannot be encoded"):
+        encode_register(definition, 1)
+
+
+def test_encode_rejects_unsupported_data_type():
+    """Reject data types that have no encoder."""
+    with pytest.raises(EncodeError, match="unsupported data_type"):
+        encode_register(make_register(data_type="string", count=2, access="write"), "x")

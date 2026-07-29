@@ -256,6 +256,11 @@ def test_client_run_with_no_iteration_limit():
     assert sleeps == [1.0, 1.0]
 
 
+# ---------------------------------------------------------------------------
+# Writes
+# ---------------------------------------------------------------------------
+
+
 def test_client_write_encodes_and_writes_register():
     """Write a configured writable register through the client API."""
     profile = make_profile(

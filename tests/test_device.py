@@ -320,7 +320,7 @@ def test_decode_leaf_rejects_uncovered_register():
 
 
 # ---------------------------------------------------------------------------
-# Writes
+# Writes: uint16
 # ---------------------------------------------------------------------------
 
 
@@ -343,58 +343,9 @@ def test_write_measurements_encodes_and_writes_uint16():
     assert reader.writes == [(217, (20,))]
 
 
-def test_write_measurements_rejects_read_only_key():
-    """Reject writes to registers marked access read."""
-    profile = make_profile(registers=(make_register(key="battery_soc", address=184),))
-
-    with pytest.raises(EncodeError, match="not writable"):
-        write_measurements(FakeReader(), profile, {"battery_soc": 50})
-
-
-def test_write_measurements_rejects_empty_values():
-    """Reject an empty write mapping before touching the transport."""
-    profile = make_profile(registers=(make_register(key="battery_soc", address=184),))
-
-    with pytest.raises(ValueError, match="values must not be empty"):
-        write_measurements(FakeReader(), profile, {})
-
-
-def test_write_measurements_rejects_math_register():
-    """Reject writes to math registers."""
-    profile = make_profile(
-        registers=(
-            make_register(key="a", address=1),
-            make_register(
-                key="total",
-                data_type="math",
-                access="write",
-                address=None,
-                function=None,
-                scale=None,
-                sources=(MathSource(key="a", factor=1.0),),
-            ),
-        )
-    )
-
-    with pytest.raises(EncodeError, match="math register"):
-        write_measurements(FakeReader(), profile, {"total": 1})
-
-
-def test_write_measurements_rejects_input_function():
-    """Reject writes that target input registers."""
-    profile = make_profile(
-        registers=(
-            make_register(
-                key="setting",
-                address=10,
-                function="input",
-                access="write",
-            ),
-        )
-    )
-
-    with pytest.raises(EncodeError, match="holding registers"):
-        write_measurements(FakeReader(), profile, {"setting": 1})
+# ---------------------------------------------------------------------------
+# Writes: options
+# ---------------------------------------------------------------------------
 
 
 def test_write_measurements_options_label():
@@ -414,6 +365,11 @@ def test_write_measurements_options_label():
     write_measurements(reader, profile, {"aux_port_usage": "Smartload"})
 
     assert reader.writes == [(235, (1,))]
+
+
+# ---------------------------------------------------------------------------
+# Writes: binary and bitmask
+# ---------------------------------------------------------------------------
 
 
 def test_write_measurements_binary_without_bitmask():
@@ -479,6 +435,11 @@ def test_write_measurements_rejects_multiword_bitmask(monkeypatch):
         write_measurements(FakeReader(responses={232: (0,)}), profile, {"flag": True})
 
 
+# ---------------------------------------------------------------------------
+# Writes: time / datetime
+# ---------------------------------------------------------------------------
+
+
 def test_write_measurements_time():
     """Encode a time string and write one holding register."""
     profile = make_profile(
@@ -518,3 +479,62 @@ def test_write_measurements_datetime():
     assert reader.writes == [
         (22, ((24 << 8) | 7, (23 << 8) | 14, (5 << 8) | 9)),
     ]
+
+
+# ---------------------------------------------------------------------------
+# Writes: rejected targets
+# ---------------------------------------------------------------------------
+
+
+def test_write_measurements_rejects_read_only_key():
+    """Reject writes to registers marked access read."""
+    profile = make_profile(registers=(make_register(key="battery_soc", address=184),))
+
+    with pytest.raises(EncodeError, match="not writable"):
+        write_measurements(FakeReader(), profile, {"battery_soc": 50})
+
+
+def test_write_measurements_rejects_empty_values():
+    """Reject an empty write mapping before touching the transport."""
+    profile = make_profile(registers=(make_register(key="battery_soc", address=184),))
+
+    with pytest.raises(ValueError, match="values must not be empty"):
+        write_measurements(FakeReader(), profile, {})
+
+
+def test_write_measurements_rejects_math_register():
+    """Reject writes to math registers."""
+    profile = make_profile(
+        registers=(
+            make_register(key="a", address=1),
+            make_register(
+                key="total",
+                data_type="math",
+                access="write",
+                address=None,
+                function=None,
+                scale=None,
+                sources=(MathSource(key="a", factor=1.0),),
+            ),
+        )
+    )
+
+    with pytest.raises(EncodeError, match="math register"):
+        write_measurements(FakeReader(), profile, {"total": 1})
+
+
+def test_write_measurements_rejects_input_function():
+    """Reject writes that target input registers."""
+    profile = make_profile(
+        registers=(
+            make_register(
+                key="setting",
+                address=10,
+                function="input",
+                access="write",
+            ),
+        )
+    )
+
+    with pytest.raises(EncodeError, match="holding registers"):
+        write_measurements(FakeReader(), profile, {"setting": 1})

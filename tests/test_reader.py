@@ -165,6 +165,11 @@ def test_read_holding_registers_wraps_transport_error():
     assert isinstance(error.value.__cause__, ModbusIOException)
 
 
+# ---------------------------------------------------------------------------
+# Writes
+# ---------------------------------------------------------------------------
+
+
 def test_write_holding_registers_sends_values():
     """Write holding-register values through the Modbus client."""
     client = FakeModbusClient()
