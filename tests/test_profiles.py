@@ -424,6 +424,24 @@ def test_build_device_profile_supports_offset():
     assert profile.registers[0].offset == 100
 
 
+def test_build_device_profile_supports_min_max_step():
+    """Allow optional engineering bounds for numeric registers."""
+    profile = load_valid_profile(
+        register_overrides={"min": 0, "max": 100, "step": 1}
+    )
+
+    register = profile.registers[0]
+    assert register.min == 0
+    assert register.max == 100
+    assert register.step == 1
+
+
+def test_build_device_profile_rejects_max_below_min():
+    """Reject engineering bounds when max is less than min."""
+    with pytest.raises(ProfileError, match="max must be >= min"):
+        load_valid_profile(register_overrides={"min": 10, "max": 5})
+
+
 def test_build_device_profile_supports_options():
     """Allow a register definition to map integer values to labels."""
     profile = load_valid_profile(

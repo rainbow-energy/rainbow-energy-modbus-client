@@ -79,6 +79,7 @@ Also require `address`, `function`, and `scale`:
 | `count` | Word count (fixed for most types; required for `string`, `fault`, and `datetime`) |
 | `word_order` | `big` or `little` (required for 32-bit types) |
 | `offset` | Optional; applied after scale: `(raw * scale) - offset` |
+| `min` / `max` / `step` | Optional engineering bounds for UIs and write validation |
 | `bitmask` | Optional; AND each word before typed decode |
 | `options` | Optional; map integer → label string |
 | `binary` | Optional; `true` → nonzero (after mask) is `True` |
@@ -278,6 +279,19 @@ Rules:
 After scale: `(raw * scale) - offset`. Useful for temperatures encoded with a
 bias (for example `offset: 100`). Not allowed with `string`, `fault`,
 `datetime`, `options`, `binary`, or `math`.
+
+### `min` / `max` / `step`
+
+Optional engineering-unit bounds for a numeric register (for example Home
+Assistant number discovery, or tighter write checks than the raw word
+width). Each field is optional; when both `min` and `max` are set,
+`max` must be `>= min`. `step` must be greater than zero.
+
+```yaml
+    min: 0
+    max: 100
+    step: 1
+```
 
 ### `bitmask`
 
