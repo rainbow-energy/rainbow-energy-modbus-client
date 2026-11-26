@@ -161,6 +161,16 @@ _REGISTER_SCHEMA = {
         "offset": {
             "type": "number",
         },
+        "min": {
+            "type": "number",
+        },
+        "max": {
+            "type": "number",
+        },
+        "step": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+        },
         "options": {
             "type": "object",
             "minProperties": 1,
@@ -317,6 +327,9 @@ class RegisterDefinition:
     word_order: str | None = None
     bitmask: int | None = None
     offset: float | None = None
+    min: float | None = None
+    max: float | None = None
+    step: float | None = None
     options: dict[int, str] | None = None
     binary: bool = False
     bits: dict[int, str] | None = None
@@ -351,6 +364,13 @@ def _validate_register_range(index: int, register_data: Mapping) -> None:
         raise ProfileError(
             f"register {index} range exceeds address {_MAX_MODBUS_ADDRESS}"
         )
+    if "min" in register_data and "max" in register_data:
+        minimum = cast(float, register_data["min"])
+        maximum = cast(float, register_data["max"])
+        if maximum < minimum:
+            raise ProfileError(
+                f"register {index} max must be >= min"
+            )
 
 
 def _normalize_options(register_data: dict[str, Any]) -> None:
