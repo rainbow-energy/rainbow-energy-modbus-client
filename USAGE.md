@@ -135,6 +135,26 @@ Use `--tcp-port` when the Modbus TCP port is not `502`. Output is one
 `key<TAB>value<TAB>unit` line per measurement. Exit codes: `0` success,
 `1` poll failure, `2` profile load error.
 
+Write named `access: write` keys once with `--set KEY=VALUE` (repeatable):
+
+```bash
+rainbow-energy-modbus-client write \
+  --profile path/to/sunsynk_8k_sg05lp1.yaml \
+  --set battery_shutdown_capacity=20 \
+  --set grid_charge_enabled=true \
+  --tcp modbus-gateway.example
+
+rainbow-energy-modbus-client write \
+  --profile path/to/sunsynk_8k_sg05lp1.yaml \
+  --set prog1_time=1:30 \
+  --serial /dev/ttyUSB0
+```
+
+Values are coerced as `true`/`false` → bool, integers, floats, otherwise
+strings (for option labels and `time` / `datetime`). Output is one
+`wrote<TAB>key<TAB>value` line per set. Exit codes: `0` success,
+`1` write failure, `2` profile load error.
+
 ## Profiles
 
 See [PROFILES.md](PROFILES.md) for authoring YAML profiles and decode options.
