@@ -6,6 +6,7 @@ from factories import make_register
 from rainbow_energy_modbus_client.validate import (
     ValidationError,
     validate_binary_value,
+    validate_datetime_value,
     validate_int16_raw,
     validate_max,
     validate_min,
@@ -114,3 +115,12 @@ def test_validate_time_value_rejects_out_of_range():
     """Reject clock strings with invalid hour or minute."""
     with pytest.raises(ValidationError, match="invalid time"):
         validate_time_value(make_register(data_type="time"), "25:00")
+
+
+def test_validate_datetime_value_rejects_invalid_format():
+    """Reject malformed datetime strings."""
+    with pytest.raises(ValidationError, match="invalid datetime"):
+        validate_datetime_value(
+            make_register(data_type="datetime", count=3),
+            "not-a-datetime",
+        )

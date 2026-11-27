@@ -4,6 +4,7 @@ from rainbow_energy_modbus_client.profiles import RegisterDefinition
 from rainbow_energy_modbus_client.validate import (
     ValidationError,
     validate_binary_value,
+    validate_datetime_value,
     validate_int16_raw,
     validate_numeric_bounds,
     validate_numeric_value,
@@ -13,17 +14,9 @@ from rainbow_energy_modbus_client.validate import (
 )
 
 _BITS_PER_BYTE = 8
-_BYTE_MASK = 0xFF
 _UINT16_RANGE = 0x10000
 _HHMM_FACTOR = 100
 _DATETIME_YEAR_BASE = 2000
-_MIN_MONTH = 1
-_MAX_MONTH = 12
-_MIN_DAY = 1
-_MAX_DAY = 31
-_MAX_HOUR = 23
-_MAX_MINUTE = 59
-_MAX_SECOND = 59
 
 
 class EncodeError(ValueError):
@@ -97,34 +90,13 @@ def _encode_time(definition: RegisterDefinition, value: object) -> int:
 
 def _encode_datetime(definition: RegisterDefinition, value: object) -> tuple[int, int, int]:
     """Encode an ISO-like datetime string into three SunSynk register words."""
-    if not isinstance(value, str):
-        raise EncodeError(f"datetime requires a string for {definition.key}")
     try:
-        date_text, time_text = value.split(" ", 1)
-        year_text, month_text, day_text = date_text.split("-", 2)
-        hour_text, minute_text, second_text = time_text.split(":", 2)
-        year = int(year_text)
-        month = int(month_text)
-        day = int(day_text)
-        hour = int(hour_text)
-        minute = int(minute_text)
-        second = int(second_text)
-    except ValueError as error:
-        raise EncodeError(
-            f"invalid datetime for {definition.key}: {value!r}"
-        ) from error
-    if not (
-        year >= _DATETIME_YEAR_BASE
-        and _MIN_MONTH <= month <= _MAX_MONTH
-        and _MIN_DAY <= day <= _MAX_DAY
-        and 0 <= hour <= _MAX_HOUR
-        and 0 <= minute <= _MAX_MINUTE
-        and 0 <= second <= _MAX_SECOND
-    ):
-        raise EncodeError(f"invalid datetime for {definition.key}: {value!r}")
+        year, month, day, hour, minute, second = validate_datetime_value(
+            definition, value
+        )
+    except ValidationError as error:
+        raise EncodeError(str(error)) from error
     year_offset = year - _DATETIME_YEAR_BASE
-    if year_offset > _BYTE_MASK:
-        raise EncodeError(f"invalid datetime for {definition.key}: {value!r}")
     return (
         (year_offset << _BITS_PER_BYTE) | month,
         (day << _BITS_PER_BYTE) | hour,
