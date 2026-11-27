@@ -180,6 +180,7 @@ def encode_register(
                 raise EncodeError(
                     f"int16 requires a numeric value for {definition.key}"
                 )
+            _enforce_numeric_bounds(definition, value)
             return (_encode_scaled_int16(definition, value),)
         case "time":
             return (_encode_time(definition, value),)

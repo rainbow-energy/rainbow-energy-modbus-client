@@ -86,6 +86,16 @@ def test_encode_int16_rejects_out_of_range():
         encode_register(make_register(data_type="int16", access="write"), 40000)
 
 
+def test_encode_int16_rejects_outside_min_max():
+    """Reject int16 engineering values outside profile min/max."""
+    definition = make_register(data_type="int16", access="write", min=-10, max=10)
+
+    with pytest.raises(EncodeError, match="above max"):
+        encode_register(definition, 11)
+    with pytest.raises(EncodeError, match="below min"):
+        encode_register(definition, -11)
+
+
 def test_encode_rejects_non_numeric_int16():
     """Reject non-numeric values for int16 encodes."""
     with pytest.raises(EncodeError, match="int16 requires a numeric"):
