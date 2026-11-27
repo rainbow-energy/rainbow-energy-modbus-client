@@ -140,9 +140,6 @@ def _encode_datetime(definition: RegisterDefinition, value: object) -> tuple[int
     )
 
 
-_STEP_TOLERANCE = 1e-9
-
-
 def _enforce_numeric_bounds(
     definition: RegisterDefinition, value: float | int
 ) -> None:
@@ -156,9 +153,8 @@ def _enforce_numeric_bounds(
             f"value {value} above max {definition.max} for {definition.key}"
         )
     if definition.step is not None:
-        base = definition.min if definition.min is not None else 0.0
-        steps = (float(value) - float(base)) / definition.step
-        if abs(steps - round(steps)) > _STEP_TOLERANCE:
+        base = definition.min if definition.min is not None else 0
+        if (value - base) % definition.step != 0:
             raise EncodeError(
                 f"value {value} is not aligned to step {definition.step} "
                 f"from {base} for {definition.key}"
