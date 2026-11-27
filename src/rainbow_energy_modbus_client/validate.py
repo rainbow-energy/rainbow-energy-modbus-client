@@ -59,6 +59,8 @@ def validate_numeric_value(
 
 
 _UINT16_MAX = 0xFFFF
+_INT16_MIN = -0x8000
+_INT16_MAX = 0x7FFF
 
 
 def validate_uint16_raw(definition: RegisterDefinition, raw: int) -> None:
@@ -66,4 +68,12 @@ def validate_uint16_raw(definition: RegisterDefinition, raw: int) -> None:
     if not 0 <= raw <= _UINT16_MAX:
         raise ValidationError(
             f"encoded value out of uint16 range for {definition.key}: {raw}"
+        )
+
+
+def validate_int16_raw(definition: RegisterDefinition, raw: int) -> None:
+    """Reject raw words outside the signed 16-bit range."""
+    if not _INT16_MIN <= raw <= _INT16_MAX:
+        raise ValidationError(
+            f"encoded value out of int16 range for {definition.key}: {raw}"
         )

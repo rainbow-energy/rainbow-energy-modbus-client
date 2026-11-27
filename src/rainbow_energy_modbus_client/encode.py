@@ -3,6 +3,7 @@
 from rainbow_energy_modbus_client.profiles import RegisterDefinition
 from rainbow_energy_modbus_client.validate import (
     ValidationError,
+    validate_int16_raw,
     validate_numeric_bounds,
     validate_numeric_value,
     validate_uint16_raw,
@@ -10,9 +11,6 @@ from rainbow_energy_modbus_client.validate import (
 
 _BITS_PER_BYTE = 8
 _BYTE_MASK = 0xFF
-_UINT16_MAX = 0xFFFF
-_INT16_MIN = -0x8000
-_INT16_MAX = 0x7FFF
 _UINT16_RANGE = 0x10000
 _HHMM_FACTOR = 100
 _MINUTES_PER_HOUR = 60
@@ -59,10 +57,10 @@ def _encode_scaled_int16(definition: RegisterDefinition, value: float | int) -> 
         raw_float += definition.offset
     raw_float /= definition.scale
     raw = _round_raw(raw_float)
-    if not _INT16_MIN <= raw <= _INT16_MAX:
-        raise EncodeError(
-            f"encoded value out of int16 range for {definition.key}: {raw}"
-        )
+    try:
+        validate_int16_raw(definition, raw)
+    except ValidationError as error:
+        raise EncodeError(str(error)) from error
     if raw < 0:
         return raw + _UINT16_RANGE
     return raw
