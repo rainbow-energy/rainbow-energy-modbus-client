@@ -31,6 +31,45 @@ def test_encode_uint16_rejects_out_of_range():
         encode_register(make_register(access="write"), 70000)
 
 
+def test_encode_uint16_rejects_above_max():
+    """Reject engineering values above the profile max bound."""
+    definition = make_register(access="write", max=8000)
+
+    with pytest.raises(EncodeError, match="above max"):
+        encode_register(definition, 8001)
+
+
+def test_encode_uint16_rejects_below_min():
+    """Reject engineering values below the profile min bound."""
+    definition = make_register(access="write", min=10)
+
+    with pytest.raises(EncodeError, match="below min"):
+        encode_register(definition, 9)
+
+
+def test_encode_uint16_allows_exact_min_and_max():
+    """Accept engineering values equal to the inclusive min and max."""
+    definition = make_register(access="write", min=10, max=8000)
+
+    assert encode_register(definition, 10) == (10,)
+    assert encode_register(definition, 8000) == (8000,)
+
+
+def test_encode_uint16_rejects_off_step():
+    """Reject engineering values that are not aligned to profile step."""
+    definition = make_register(access="write", min=0, step=10)
+
+    with pytest.raises(EncodeError, match="step"):
+        encode_register(definition, 15)
+
+
+def test_encode_uint16_allows_on_step():
+    """Accept engineering values that land on the profile step grid."""
+    definition = make_register(access="write", min=0, step=10)
+
+    assert encode_register(definition, 20) == (20,)
+
+
 def test_encode_rejects_non_numeric_uint16():
     """Reject non-numeric values for uint16 encodes."""
     with pytest.raises(EncodeError, match="uint16 requires a numeric"):
@@ -60,6 +99,16 @@ def test_encode_int16_rejects_out_of_range():
     """Reject scaled values outside the signed 16-bit range."""
     with pytest.raises(EncodeError, match="out of int16 range"):
         encode_register(make_register(data_type="int16", access="write"), 40000)
+
+
+def test_encode_int16_rejects_outside_min_max():
+    """Reject int16 engineering values outside profile min/max."""
+    definition = make_register(data_type="int16", access="write", min=-10, max=10)
+
+    with pytest.raises(EncodeError, match="above max"):
+        encode_register(definition, 11)
+    with pytest.raises(EncodeError, match="below min"):
+        encode_register(definition, -11)
 
 
 def test_encode_rejects_non_numeric_int16():
