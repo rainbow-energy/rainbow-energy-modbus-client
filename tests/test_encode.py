@@ -31,6 +31,14 @@ def test_encode_uint16_rejects_out_of_range():
         encode_register(make_register(access="write"), 70000)
 
 
+def test_encode_uint16_rejects_above_max():
+    """Reject engineering values above the profile max bound."""
+    definition = make_register(access="write", max=8000)
+
+    with pytest.raises(EncodeError, match="above max"):
+        encode_register(definition, 8001)
+
+
 def test_encode_rejects_non_numeric_uint16():
     """Reject non-numeric values for uint16 encodes."""
     with pytest.raises(EncodeError, match="uint16 requires a numeric"):

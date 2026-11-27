@@ -140,6 +140,16 @@ def _encode_datetime(definition: RegisterDefinition, value: object) -> tuple[int
     )
 
 
+def _enforce_numeric_bounds(
+    definition: RegisterDefinition, value: float | int
+) -> None:
+    """Reject engineering values outside optional profile min/max."""
+    if definition.max is not None and value > definition.max:
+        raise EncodeError(
+            f"value {value} above max {definition.max} for {definition.key}"
+        )
+
+
 def encode_register(
     definition: RegisterDefinition,
     value: float | int | str | bool,
@@ -159,6 +169,7 @@ def encode_register(
                 raise EncodeError(
                     f"uint16 requires a numeric value for {definition.key}"
                 )
+            _enforce_numeric_bounds(definition, value)
             return (_encode_scaled_uint16(definition, value),)
         case "int16":
             if isinstance(value, bool) or not isinstance(value, (int, float)):
