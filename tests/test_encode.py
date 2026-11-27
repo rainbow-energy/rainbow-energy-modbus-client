@@ -39,6 +39,14 @@ def test_encode_uint16_rejects_above_max():
         encode_register(definition, 8001)
 
 
+def test_encode_uint16_rejects_below_min():
+    """Reject engineering values below the profile min bound."""
+    definition = make_register(access="write", min=10)
+
+    with pytest.raises(EncodeError, match="below min"):
+        encode_register(definition, 9)
+
+
 def test_encode_rejects_non_numeric_uint16():
     """Reject non-numeric values for uint16 encodes."""
     with pytest.raises(EncodeError, match="uint16 requires a numeric"):

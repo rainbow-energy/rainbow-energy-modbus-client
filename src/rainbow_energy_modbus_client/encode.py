@@ -144,6 +144,10 @@ def _enforce_numeric_bounds(
     definition: RegisterDefinition, value: float | int
 ) -> None:
     """Reject engineering values outside optional profile min/max."""
+    if definition.min is not None and value < definition.min:
+        raise EncodeError(
+            f"value {value} below min {definition.min} for {definition.key}"
+        )
     if definition.max is not None and value > definition.max:
         raise EncodeError(
             f"value {value} above max {definition.max} for {definition.key}"
