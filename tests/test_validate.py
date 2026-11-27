@@ -5,11 +5,12 @@ import pytest
 from factories import make_register
 from rainbow_energy_modbus_client.validate import (
     ValidationError,
+    validate_binary_value,
+    validate_int16_raw,
     validate_max,
     validate_min,
     validate_numeric_bounds,
     validate_numeric_value,
-    validate_int16_raw,
     validate_step,
     validate_uint16_raw,
 )
@@ -91,3 +92,9 @@ def test_validate_int16_raw_rejects_out_of_range():
     """Reject raw words outside the signed 16-bit range."""
     with pytest.raises(ValidationError, match="out of int16 range"):
         validate_int16_raw(make_register(data_type="int16"), 40000)
+
+
+def test_validate_binary_value_rejects_non_bool():
+    """Reject non-bool values for binary writes."""
+    with pytest.raises(ValidationError, match="binary requires a bool"):
+        validate_binary_value(make_register(binary=True), 1)

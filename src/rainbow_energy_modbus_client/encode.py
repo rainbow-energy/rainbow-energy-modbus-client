@@ -3,6 +3,7 @@
 from rainbow_energy_modbus_client.profiles import RegisterDefinition
 from rainbow_energy_modbus_client.validate import (
     ValidationError,
+    validate_binary_value,
     validate_int16_raw,
     validate_numeric_bounds,
     validate_numeric_value,
@@ -85,11 +86,13 @@ def _encode_options(definition: RegisterDefinition, value: object) -> int:
 
 def _encode_binary(definition: RegisterDefinition, value: object) -> int:
     """Map a boolean to a non-zero or zero masked contribution."""
-    if not isinstance(value, bool):
-        raise EncodeError(f"binary requires a bool for {definition.key}")
+    try:
+        flag = validate_binary_value(definition, value)
+    except ValidationError as error:
+        raise EncodeError(str(error)) from error
     if definition.bitmask is not None:
-        return definition.bitmask if value else 0
-    return 1 if value else 0
+        return definition.bitmask if flag else 0
+    return 1 if flag else 0
 
 
 def _encode_time(definition: RegisterDefinition, value: object) -> int:

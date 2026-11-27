@@ -77,3 +77,12 @@ def validate_int16_raw(definition: RegisterDefinition, raw: int) -> None:
         raise ValidationError(
             f"encoded value out of int16 range for {definition.key}: {raw}"
         )
+
+
+def validate_binary_value(
+    definition: RegisterDefinition, value: object
+) -> bool:
+    """Require a boolean for binary writes."""
+    if not isinstance(value, bool):
+        raise ValidationError(f"binary requires a bool for {definition.key}")
+    return value
