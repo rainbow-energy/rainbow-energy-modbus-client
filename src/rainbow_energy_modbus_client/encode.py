@@ -5,6 +5,7 @@ from rainbow_energy_modbus_client.validate import (
     ValidationError,
     validate_binary_value,
     validate_datetime_value,
+    validate_encodable,
     validate_int16_raw,
     validate_numeric_bounds,
     validate_numeric_value,
@@ -119,10 +120,10 @@ def encode_register(
     value: float | int | str | bool,
 ) -> tuple[int, ...]:
     """Encode one engineering value into raw register words."""
-    if definition.data_type == "math":
-        raise EncodeError(
-            f"math register {definition.key} cannot be encoded to raw words"
-        )
+    try:
+        validate_encodable(definition)
+    except ValidationError as error:
+        raise EncodeError(str(error)) from error
     if definition.binary:
         return (_encode_binary(definition, value),)
     if definition.options is not None:

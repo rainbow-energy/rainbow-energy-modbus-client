@@ -44,6 +44,14 @@ def validate_numeric_bounds(
     validate_step(definition, value)
 
 
+def validate_encodable(definition: RegisterDefinition) -> None:
+    """Reject registers that cannot be encoded to raw words."""
+    if definition.data_type == "math":
+        raise ValidationError(
+            f"math register {definition.key} cannot be encoded to raw words"
+        )
+
+
 def validate_numeric_value(
     definition: RegisterDefinition,
     value: object,

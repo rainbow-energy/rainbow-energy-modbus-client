@@ -3,10 +3,12 @@
 import pytest
 
 from factories import make_register
+from rainbow_energy_modbus_client.profiles import MathSource
 from rainbow_energy_modbus_client.validate import (
     ValidationError,
     validate_binary_value,
     validate_datetime_value,
+    validate_encodable,
     validate_int16_raw,
     validate_max,
     validate_min,
@@ -124,3 +126,17 @@ def test_validate_datetime_value_rejects_invalid_format():
             make_register(data_type="datetime", count=3),
             "not-a-datetime",
         )
+
+
+def test_validate_encodable_rejects_math():
+    """Reject math registers before encode."""
+    definition = make_register(
+        data_type="math",
+        address=None,
+        function=None,
+        scale=None,
+        sources=(MathSource(key="a", factor=1.0),),
+    )
+
+    with pytest.raises(ValidationError, match="math register"):
+        validate_encodable(definition)
