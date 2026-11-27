@@ -55,6 +55,14 @@ def test_encode_uint16_allows_exact_min_and_max():
     assert encode_register(definition, 8000) == (8000,)
 
 
+def test_encode_uint16_rejects_off_step():
+    """Reject engineering values that are not aligned to profile step."""
+    definition = make_register(access="write", min=0, step=10)
+
+    with pytest.raises(EncodeError, match="step"):
+        encode_register(definition, 15)
+
+
 def test_encode_rejects_non_numeric_uint16():
     """Reject non-numeric values for uint16 encodes."""
     with pytest.raises(EncodeError, match="uint16 requires a numeric"):

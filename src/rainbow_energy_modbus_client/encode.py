@@ -140,10 +140,13 @@ def _encode_datetime(definition: RegisterDefinition, value: object) -> tuple[int
     )
 
 
+_STEP_TOLERANCE = 1e-9
+
+
 def _enforce_numeric_bounds(
     definition: RegisterDefinition, value: float | int
 ) -> None:
-    """Reject engineering values outside optional profile min/max."""
+    """Reject engineering values outside optional profile min/max/step."""
     if definition.min is not None and value < definition.min:
         raise EncodeError(
             f"value {value} below min {definition.min} for {definition.key}"
@@ -152,6 +155,14 @@ def _enforce_numeric_bounds(
         raise EncodeError(
             f"value {value} above max {definition.max} for {definition.key}"
         )
+    if definition.step is not None:
+        base = definition.min if definition.min is not None else 0.0
+        steps = (float(value) - float(base)) / definition.step
+        if abs(steps - round(steps)) > _STEP_TOLERANCE:
+            raise EncodeError(
+                f"value {value} is not aligned to step {definition.step} "
+                f"from {base} for {definition.key}"
+            )
 
 
 def encode_register(
