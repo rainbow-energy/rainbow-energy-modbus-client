@@ -4,6 +4,7 @@ from rainbow_energy_modbus_client.profiles import RegisterDefinition
 from rainbow_energy_modbus_client.validate import (
     ValidationError,
     validate_numeric_bounds,
+    validate_numeric_value,
 )
 
 _BITS_PER_BYTE = 8
@@ -169,19 +170,23 @@ def encode_register(
         return (_encode_options(definition, value),)
     match definition.data_type:
         case "uint16":
-            if isinstance(value, bool) or not isinstance(value, (int, float)):
-                raise EncodeError(
-                    f"uint16 requires a numeric value for {definition.key}"
+            try:
+                numeric = validate_numeric_value(
+                    definition, value, data_type="uint16"
                 )
-            _enforce_numeric_bounds(definition, value)
-            return (_encode_scaled_uint16(definition, value),)
+            except ValidationError as error:
+                raise EncodeError(str(error)) from error
+            _enforce_numeric_bounds(definition, numeric)
+            return (_encode_scaled_uint16(definition, numeric),)
         case "int16":
-            if isinstance(value, bool) or not isinstance(value, (int, float)):
-                raise EncodeError(
-                    f"int16 requires a numeric value for {definition.key}"
+            try:
+                numeric = validate_numeric_value(
+                    definition, value, data_type="int16"
                 )
-            _enforce_numeric_bounds(definition, value)
-            return (_encode_scaled_int16(definition, value),)
+            except ValidationError as error:
+                raise EncodeError(str(error)) from error
+            _enforce_numeric_bounds(definition, numeric)
+            return (_encode_scaled_int16(definition, numeric),)
         case "time":
             return (_encode_time(definition, value),)
         case "datetime":

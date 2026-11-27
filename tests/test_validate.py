@@ -8,6 +8,7 @@ from rainbow_energy_modbus_client.validate import (
     validate_max,
     validate_min,
     validate_numeric_bounds,
+    validate_numeric_value,
     validate_step,
 )
 
@@ -70,3 +71,9 @@ def test_validate_numeric_bounds_runs_all_checks():
         validate_numeric_bounds(definition, 110)
     with pytest.raises(ValidationError, match="step"):
         validate_numeric_bounds(definition, 15)
+
+
+def test_validate_numeric_value_rejects_non_numeric():
+    """Reject non-numeric values for scaled integer types."""
+    with pytest.raises(ValidationError, match="uint16 requires a numeric"):
+        validate_numeric_value(make_register(), "20", data_type="uint16")

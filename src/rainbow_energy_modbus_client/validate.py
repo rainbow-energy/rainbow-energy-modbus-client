@@ -42,3 +42,17 @@ def validate_numeric_bounds(
     validate_min(definition, value)
     validate_max(definition, value)
     validate_step(definition, value)
+
+
+def validate_numeric_value(
+    definition: RegisterDefinition,
+    value: object,
+    *,
+    data_type: str,
+) -> float | int:
+    """Require a non-bool numeric write value for scaled integer types."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValidationError(
+            f"{data_type} requires a numeric value for {definition.key}"
+        )
+    return value
