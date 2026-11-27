@@ -47,6 +47,14 @@ def test_encode_uint16_rejects_below_min():
         encode_register(definition, 9)
 
 
+def test_encode_uint16_allows_exact_min_and_max():
+    """Accept engineering values equal to the inclusive min and max."""
+    definition = make_register(access="write", min=10, max=8000)
+
+    assert encode_register(definition, 10) == (10,)
+    assert encode_register(definition, 8000) == (8000,)
+
+
 def test_encode_rejects_non_numeric_uint16():
     """Reject non-numeric values for uint16 encodes."""
     with pytest.raises(EncodeError, match="uint16 requires a numeric"):
