@@ -8,6 +8,7 @@ from rainbow_energy_modbus_client.validate import (
     validate_numeric_bounds,
     validate_numeric_value,
     validate_options_value,
+    validate_time_value,
     validate_uint16_raw,
 )
 
@@ -15,8 +16,6 @@ _BITS_PER_BYTE = 8
 _BYTE_MASK = 0xFF
 _UINT16_RANGE = 0x10000
 _HHMM_FACTOR = 100
-_MINUTES_PER_HOUR = 60
-_HOURS_PER_DAY = 24
 _DATETIME_YEAR_BASE = 2000
 _MIN_MONTH = 1
 _MAX_MONTH = 12
@@ -89,16 +88,10 @@ def _encode_binary(definition: RegisterDefinition, value: object) -> int:
 
 def _encode_time(definition: RegisterDefinition, value: object) -> int:
     """Encode an H:MM or HH:MM clock string as HHMM-packed minutes."""
-    if not isinstance(value, str):
-        raise EncodeError(f"time requires a string for {definition.key}")
     try:
-        hour_text, minute_text = value.split(":", 1)
-        hours = int(hour_text)
-        minutes = int(minute_text)
-    except ValueError as error:
-        raise EncodeError(f"invalid time for {definition.key}: {value!r}") from error
-    if not (0 <= hours < _HOURS_PER_DAY and 0 <= minutes < _MINUTES_PER_HOUR):
-        raise EncodeError(f"invalid time for {definition.key}: {value!r}")
+        hours, minutes = validate_time_value(definition, value)
+    except ValidationError as error:
+        raise EncodeError(str(error)) from error
     return hours * _HHMM_FACTOR + minutes
 
 

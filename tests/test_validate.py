@@ -13,6 +13,7 @@ from rainbow_energy_modbus_client.validate import (
     validate_numeric_value,
     validate_options_value,
     validate_step,
+    validate_time_value,
     validate_uint16_raw,
 )
 
@@ -107,3 +108,9 @@ def test_validate_options_value_rejects_unknown_label():
 
     with pytest.raises(ValidationError, match="unknown option"):
         validate_options_value(definition, "Nope")
+
+
+def test_validate_time_value_rejects_out_of_range():
+    """Reject clock strings with invalid hour or minute."""
+    with pytest.raises(ValidationError, match="invalid time"):
+        validate_time_value(make_register(data_type="time"), "25:00")

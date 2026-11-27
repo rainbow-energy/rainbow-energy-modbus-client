@@ -105,3 +105,26 @@ def validate_options_value(
     if value not in definition.options:
         raise ValidationError(f"unknown option {value} for {definition.key}")
     return value
+
+
+_MINUTES_PER_HOUR = 60
+_HOURS_PER_DAY = 24
+
+
+def validate_time_value(
+    definition: RegisterDefinition, value: object
+) -> tuple[int, int]:
+    """Parse and range-check an H:MM or HH:MM clock string."""
+    if not isinstance(value, str):
+        raise ValidationError(f"time requires a string for {definition.key}")
+    try:
+        hour_text, minute_text = value.split(":", 1)
+        hours = int(hour_text)
+        minutes = int(minute_text)
+    except ValueError as error:
+        raise ValidationError(
+            f"invalid time for {definition.key}: {value!r}"
+        ) from error
+    if not (0 <= hours < _HOURS_PER_DAY and 0 <= minutes < _MINUTES_PER_HOUR):
+        raise ValidationError(f"invalid time for {definition.key}: {value!r}")
+    return hours, minutes
