@@ -11,6 +11,7 @@ from rainbow_energy_modbus_client.validate import (
     validate_min,
     validate_numeric_bounds,
     validate_numeric_value,
+    validate_options_value,
     validate_step,
     validate_uint16_raw,
 )
@@ -98,3 +99,11 @@ def test_validate_binary_value_rejects_non_bool():
     """Reject non-bool values for binary writes."""
     with pytest.raises(ValidationError, match="binary requires a bool"):
         validate_binary_value(make_register(binary=True), 1)
+
+
+def test_validate_options_value_rejects_unknown_label():
+    """Reject labels that are not in the options map."""
+    definition = make_register(options={0: "Disable"})
+
+    with pytest.raises(ValidationError, match="unknown option"):
+        validate_options_value(definition, "Nope")

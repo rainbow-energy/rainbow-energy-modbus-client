@@ -7,6 +7,7 @@ from rainbow_energy_modbus_client.validate import (
     validate_int16_raw,
     validate_numeric_bounds,
     validate_numeric_value,
+    validate_options_value,
     validate_uint16_raw,
 )
 
@@ -69,19 +70,10 @@ def _encode_scaled_int16(definition: RegisterDefinition, value: float | int) -> 
 
 def _encode_options(definition: RegisterDefinition, value: object) -> int:
     """Map an options label or raw integer to a register word."""
-    assert definition.options is not None
-    if isinstance(value, bool) or not isinstance(value, int):
-        if not isinstance(value, str):
-            raise EncodeError(
-                f"options require a label or integer for {definition.key}"
-            )
-        for raw, label in definition.options.items():
-            if label == value:
-                return raw
-        raise EncodeError(f"unknown option {value!r} for {definition.key}")
-    if value not in definition.options:
-        raise EncodeError(f"unknown option {value} for {definition.key}")
-    return value
+    try:
+        return validate_options_value(definition, value)
+    except ValidationError as error:
+        raise EncodeError(str(error)) from error
 
 
 def _encode_binary(definition: RegisterDefinition, value: object) -> int:

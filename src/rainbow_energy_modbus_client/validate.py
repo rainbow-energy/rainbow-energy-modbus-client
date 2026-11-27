@@ -86,3 +86,22 @@ def validate_binary_value(
     if not isinstance(value, bool):
         raise ValidationError(f"binary requires a bool for {definition.key}")
     return value
+
+
+def validate_options_value(
+    definition: RegisterDefinition, value: object
+) -> int:
+    """Resolve an options label or raw integer to a register word."""
+    assert definition.options is not None
+    if isinstance(value, bool) or not isinstance(value, int):
+        if not isinstance(value, str):
+            raise ValidationError(
+                f"options require a label or integer for {definition.key}"
+            )
+        for raw, label in definition.options.items():
+            if label == value:
+                return raw
+        raise ValidationError(f"unknown option {value!r} for {definition.key}")
+    if value not in definition.options:
+        raise ValidationError(f"unknown option {value} for {definition.key}")
+    return value
