@@ -282,10 +282,13 @@ bias (for example `offset: 100`). Not allowed with `string`, `fault`,
 
 ### `min` / `max` / `step`
 
-Optional engineering-unit bounds for a numeric register (for example Home
-Assistant number discovery, or tighter write checks than the raw word
-width). Each field is optional; when both `min` and `max` are set,
-`max` must be `>= min`. `step` must be greater than zero.
+Optional engineering-unit bounds for a numeric register. Publisher uses
+them for Home Assistant number discovery. Encode also enforces them on
+`uint16` / `int16` writes: values outside `min`/`max` (inclusive) or not
+aligned to `step` (measured from `min`, or `0` when `min` is omitted)
+raise `EncodeError` before any Modbus traffic. Each field is optional;
+when both `min` and `max` are set, `max` must be `>= min`. `step` must
+be greater than zero.
 
 ```yaml
     min: 0
