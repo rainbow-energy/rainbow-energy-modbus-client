@@ -1,6 +1,10 @@
 """Encode engineering values into raw Modbus register words."""
 
 from rainbow_energy_modbus_client.profiles import RegisterDefinition
+from rainbow_energy_modbus_client.validate import (
+    ValidationError,
+    validate_numeric_bounds,
+)
 
 _BITS_PER_BYTE = 8
 _BYTE_MASK = 0xFF
@@ -144,21 +148,10 @@ def _enforce_numeric_bounds(
     definition: RegisterDefinition, value: float | int
 ) -> None:
     """Reject engineering values outside optional profile min/max/step."""
-    if definition.min is not None and value < definition.min:
-        raise EncodeError(
-            f"value {value} below min {definition.min} for {definition.key}"
-        )
-    if definition.max is not None and value > definition.max:
-        raise EncodeError(
-            f"value {value} above max {definition.max} for {definition.key}"
-        )
-    if definition.step is not None:
-        base = definition.min if definition.min is not None else 0
-        if (value - base) % definition.step != 0:
-            raise EncodeError(
-                f"value {value} is not aligned to step {definition.step} "
-                f"from {base} for {definition.key}"
-            )
+    try:
+        validate_numeric_bounds(definition, value)
+    except ValidationError as error:
+        raise EncodeError(str(error)) from error
 
 
 def encode_register(
