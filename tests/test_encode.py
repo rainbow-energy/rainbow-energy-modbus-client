@@ -63,6 +63,13 @@ def test_encode_uint16_rejects_off_step():
         encode_register(definition, 15)
 
 
+def test_encode_uint16_allows_on_step():
+    """Accept engineering values that land on the profile step grid."""
+    definition = make_register(access="write", min=0, step=10)
+
+    assert encode_register(definition, 20) == (20,)
+
+
 def test_encode_rejects_non_numeric_uint16():
     """Reject non-numeric values for uint16 encodes."""
     with pytest.raises(EncodeError, match="uint16 requires a numeric"):
