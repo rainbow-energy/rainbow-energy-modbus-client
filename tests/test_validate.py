@@ -10,6 +10,7 @@ from rainbow_energy_modbus_client.validate import (
     validate_numeric_bounds,
     validate_numeric_value,
     validate_step,
+    validate_uint16_raw,
 )
 
 
@@ -77,3 +78,9 @@ def test_validate_numeric_value_rejects_non_numeric():
     """Reject non-numeric values for scaled integer types."""
     with pytest.raises(ValidationError, match="uint16 requires a numeric"):
         validate_numeric_value(make_register(), "20", data_type="uint16")
+
+
+def test_validate_uint16_raw_rejects_out_of_range():
+    """Reject raw words outside the unsigned 16-bit range."""
+    with pytest.raises(ValidationError, match="out of uint16 range"):
+        validate_uint16_raw(make_register(), 70000)

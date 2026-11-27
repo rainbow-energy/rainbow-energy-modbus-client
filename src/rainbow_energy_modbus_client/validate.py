@@ -56,3 +56,14 @@ def validate_numeric_value(
             f"{data_type} requires a numeric value for {definition.key}"
         )
     return value
+
+
+_UINT16_MAX = 0xFFFF
+
+
+def validate_uint16_raw(definition: RegisterDefinition, raw: int) -> None:
+    """Reject raw words outside the unsigned 16-bit range."""
+    if not 0 <= raw <= _UINT16_MAX:
+        raise ValidationError(
+            f"encoded value out of uint16 range for {definition.key}: {raw}"
+        )

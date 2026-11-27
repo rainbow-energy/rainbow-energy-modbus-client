@@ -5,6 +5,7 @@ from rainbow_energy_modbus_client.validate import (
     ValidationError,
     validate_numeric_bounds,
     validate_numeric_value,
+    validate_uint16_raw,
 )
 
 _BITS_PER_BYTE = 8
@@ -43,10 +44,10 @@ def _encode_scaled_uint16(definition: RegisterDefinition, value: float | int) ->
         raw_float += definition.offset
     raw_float /= definition.scale
     raw = _round_raw(raw_float)
-    if not 0 <= raw <= _UINT16_MAX:
-        raise EncodeError(
-            f"encoded value out of uint16 range for {definition.key}: {raw}"
-        )
+    try:
+        validate_uint16_raw(definition, raw)
+    except ValidationError as error:
+        raise EncodeError(str(error)) from error
     return raw
 
 
